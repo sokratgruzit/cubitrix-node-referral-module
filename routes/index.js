@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express();
-const referral_controller = require("../controllers/referral_controller");
+const referral_controller = require("../controllers/referrals_controller");
 
 const cookieParser = require("cookie-parser");
 
