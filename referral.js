@@ -1,5 +1,5 @@
-const globals_router = require("./routes/index");
+const referral = require("./routes/index");
 
 module.exports = {
-  globals_router: globals_router,
+  referral: referral,
 };
