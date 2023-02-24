@@ -1,4 +1,4 @@
-const { accounts, referral_links } = require("@cubitrix/models");
+const { referral_uni_users, referral_links } = require("@cubitrix/models");
 const main_helper = require("../helpers/index");
 const global_helper = require("../helpers/global_helper");
 const shortid = require("shortid");
@@ -23,6 +23,8 @@ async function test_function(req, res) {
       return_data = await get_referral_by_code(referral);
     } else if (type == "get_referral_by_address") {
       return_data = await get_referral_by_address(address);
+    } else if (type == "assign_refferal_to_user") {
+      return_data = await assign_refferal_to_user(referral, address);
     }
     return main_helper.success_response(res, return_data);
   } catch (e) {
@@ -104,7 +106,44 @@ const get_referral_by_address = async (address) => {
     return e.message;
   }
 };
-
+const user_already_have_referral_code = async (user_id) => {
+  try {
+    let ref_check = await referral_uni_users.findOne({
+      user_id,
+    });
+    if (ref_check) {
+      return true;
+    } else {
+      return false;
+    }
+  } catch (e) {
+    console.log(e.message);
+    return false;
+  }
+};
+const assign_refferal_to_user = async (referral, address) => {
+  try {
+    let user_id = await global_helper.get_account_by_address(address);
+    let check_ref = await user_already_have_referral_code(user_id);
+    if (check_ref) {
+      return "User already activated referral code";
+    }
+    let referral_id = await global_helper.get_referral_by_code(referral);
+    let assign_ref_to_user = await referral_uni_users.create({
+      user_id,
+      referral_id,
+      referral,
+    });
+    if (assign_ref_to_user) {
+      return assign_ref_to_user;
+    } else {
+      return "error";
+    }
+  } catch (e) {
+    console.log(e.message);
+    return e.message;
+  }
+};
 module.exports = {
   test_function,
 };
