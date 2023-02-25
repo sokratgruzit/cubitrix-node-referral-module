@@ -6,7 +6,15 @@ const shortid = require("shortid");
 // get account balance
 async function test_function(req, res) {
   try {
-    let { type, address, referral, referral_type } = req.body;
+    let {
+      type,
+      address,
+      referral,
+      referral_avtivated,
+      referral_uni_percentage,
+      referral_binary_lvl1_percentage,
+      referral_binary_lvl2_percentage,
+    } = req.body;
     let return_data;
     if (type == "generate_referral_code") {
       return_data = {
@@ -25,6 +33,15 @@ async function test_function(req, res) {
       return_data = await get_referral_by_address(address);
     } else if (type == "assign_refferal_to_user") {
       return_data = await assign_refferal_to_user(referral, address);
+    } else if (type == "admin_setup") {
+      return_data = await admin_setup(
+        referral_avtivated,
+        referral_uni_percentage,
+        referral_binary_lvl1_percentage,
+        referral_binary_lvl2_percentage
+      );
+    } else if (type == "get_referral_options") {
+      return_data = await get_referral_options();
     }
     return main_helper.success_response(res, return_data);
   } catch (e) {
@@ -142,6 +159,48 @@ const assign_refferal_to_user = async (referral, address) => {
   } catch (e) {
     console.log(e.message);
     return e.message;
+  }
+};
+const admin_setup = async (
+  referral_avtivated,
+  referral_uni_percentage,
+  referral_binary_lvl1_percentage,
+  referral_binary_lvl2_percentage
+) => {
+  try {
+    let referral_options = {
+      referral_avtivated: referral_avtivated,
+      referral_uni_percentage: parseFloat(referral_uni_percentage),
+      referral_binary_lvl1_percentage: parseFloat(
+        referral_binary_lvl1_percentage
+      ),
+      referral_binary_lvl2_percentage: parseFloat(
+        referral_binary_lvl2_percentage
+      ),
+    };
+    let update = await global_helper.set_object_option_by_key(
+      "referral_options",
+      referral_options
+    );
+    return update;
+  } catch (e) {
+    console.log(e.message);
+    return;
+  }
+};
+const get_referral_options = async () => {
+  try {
+    let get_referral_options = await global_helper.get_option_by_key(
+      "referral_options"
+    );
+    if (get_referral_options.success) {
+      return get_referral_options?.data?.object_value;
+    } else {
+      return {};
+    }
+  } catch (e) {
+    console.log(e.message);
+    return;
   }
 };
 module.exports = {

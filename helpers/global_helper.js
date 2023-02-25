@@ -23,6 +23,20 @@ async function get_option_by_key(key) {
     };
   }
 }
+async function set_object_option_by_key(key, object_value) {
+  try {
+    let option = await options.findOne({ key });
+    if (option) {
+      await options.updateOne({ key }, { object_value });
+    } else {
+      await options.create({ key, object_value });
+    }
+    return get_option_by_key(key);
+  } catch (e) {
+    console.log("get_option_by_key:", e.message);
+    return "error";
+  }
+}
 // get account type by name
 async function get_account_by_address(address) {
   try {
@@ -57,6 +71,7 @@ async function get_referral_by_code(referral) {
 }
 module.exports = {
   get_option_by_key,
+  set_object_option_by_key,
   get_account_by_address,
   get_referral_by_code,
 };
