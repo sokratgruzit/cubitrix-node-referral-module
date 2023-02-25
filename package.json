@@ -1,6 +1,6 @@
 {
   "name": "@cubitrix/cubitrix-refferal-node-module",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "module for managing referral data",
   "main": "referral.js",
   "scripts": {
@@ -10,7 +10,6 @@
   "author": "jinx",
   "license": "MIT",
   "dependencies": {
-    "@cubitrix/models": "0.0.16",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
@@ -21,6 +20,7 @@
     "web3": "^1.8.1"
   },
   "devDependencies": {
+    "@cubitrix/models": "0.0.16",
     "nodemon": "^2.0.20"
   }
 }
