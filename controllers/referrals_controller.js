@@ -32,6 +32,7 @@ async function test_function(req, res) {
     return main_helper.error_response(res, "error");
   }
 }
+
 const generate_referral_code = async () => {
   // Generate a short, unique ID with the prefix "REF_"
   let ref_code = "REF_" + shortid.generate() + shortid.generate();
@@ -41,6 +42,7 @@ const generate_referral_code = async () => {
   }
   return ref_code;
 };
+
 const bind_referral_to_user = async (address, referrals) => {
   try {
     let check_by_address = await get_referral_by_address(address);
@@ -79,6 +81,7 @@ const bind_referral_to_user = async (address, referrals) => {
     return e.message;
   }
 };
+
 const get_referral_by_code = async (referral) => {
   try {
     let code_exists = await referral_links.find({
@@ -90,6 +93,7 @@ const get_referral_by_code = async (referral) => {
     return false;
   }
 };
+
 const get_referral_by_address = async (address) => {
   try {
     let account_id = await global_helper.get_account_by_address(address);
@@ -106,6 +110,7 @@ const get_referral_by_address = async (address) => {
     return e.message;
   }
 };
+
 const user_already_have_referral_code = async (user_id) => {
   try {
     let ref_check = await referral_uni_users.findOne({
@@ -121,6 +126,7 @@ const user_already_have_referral_code = async (user_id) => {
     return false;
   }
 };
+
 const assign_refferal_to_user = async (referral, address) => {
   try {
     let user_id = await global_helper.get_account_by_address(address);
@@ -144,6 +150,7 @@ const assign_refferal_to_user = async (referral, address) => {
     return e.message;
   }
 };
+
 module.exports = {
   test_function,
 };
