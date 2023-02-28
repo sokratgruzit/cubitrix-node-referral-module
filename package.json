@@ -20,7 +20,9 @@
     "web3": "^1.8.1"
   },
   "devDependencies": {
-    "@cubitrix/models": "0.0.16",
     "nodemon": "^2.0.20"
+  },
+  "peerDependencies": {
+    "@cubitrix/models": "0.0.17"
   }
 }

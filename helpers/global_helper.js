@@ -61,8 +61,7 @@ async function get_referral_by_code(referral) {
       .exec();
 
     if (referral_code) {
-      let referral_id = referral_code._id;
-      return referral_id.toString();
+      return referral_code;
     }
     return 0;
   } catch (e) {

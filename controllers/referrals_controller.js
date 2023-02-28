@@ -1,4 +1,8 @@
-const { referral_uni_users, referral_links } = require("@cubitrix/models");
+const {
+  referral_uni_users,
+  referral_binary_users,
+  referral_links,
+} = require("@cubitrix/models");
 const main_helper = require("../helpers/index");
 const global_helper = require("../helpers/global_helper");
 const shortid = require("shortid");
@@ -45,14 +49,23 @@ const user_already_have_referral_code = async (user_id) => {
     let ref_check = await referral_uni_users.findOne({
       user_id,
     });
+    let ref_check_binary = await referral_binary_users.findOne({
+      user_id,
+    });
+    let ref_codes = {
+      uni: false,
+      binary: false,
+    };
     if (ref_check) {
-      return true;
-    } else {
-      return false;
+      ref_codes.uni = true;
     }
+    if (ref_check_binary) {
+      ref_codes.binary = true;
+    }
+    return ref_codes;
   } catch (e) {
     console.log(e.message);
-    return false;
+    return "error";
   }
 };
 const assign_refferal_to_user = async (req, res) => {
@@ -60,26 +73,100 @@ const assign_refferal_to_user = async (req, res) => {
     let { referral, address } = req.body;
     let user_id = await global_helper.get_account_by_address(address);
     let check_ref = await user_already_have_referral_code(user_id);
-    if (check_ref) {
+    let ref_check_author = await referral_links.findOne({ referral });
+    if (ref_check_author.account_id == user_id) {
       return main_helper.error_response(
         res,
-        "User already activated referral code"
+        "You cannot activate your own code"
       );
     }
-    let referral_id = await global_helper.get_referral_by_code(referral);
-    let assign_ref_to_user = await referral_uni_users.create({
-      user_id,
-      referral_id,
-      referral,
-    });
-    if (assign_ref_to_user) {
-      return main_helper.success_response(res, assign_ref_to_user);
-    } else {
-      return main_helper.error_response(res, "error");
+    if (check_ref.uni && check_ref.binary) {
+      return main_helper.error_response(
+        res,
+        "User already activated both referral code"
+      );
+    }
+    let full_referral = await global_helper.get_referral_by_code(referral);
+    let referral_id = full_referral._id;
+    referral_id = referral_id.toString();
+    if (full_referral.referral_type == "uni") {
+      if (check_ref.uni) {
+        return main_helper.error_response(
+          res,
+          "User already activated uni level referral code"
+        );
+      }
+      let assign_ref_to_user = await referral_uni_users.create({
+        user_id,
+        referral_id,
+        referral,
+      });
+      if (assign_ref_to_user) {
+        return main_helper.success_response(res, assign_ref_to_user);
+      } else {
+        return main_helper.error_response(res, "error");
+      }
+    }
+    if (full_referral.referral_type == "binary") {
+      if (check_ref.binary) {
+        return main_helper.error_response(
+          res,
+          "User already activated binary level referral code"
+        );
+      }
+
+      let assign_ref_to_user = await referral_binary_users.create({
+        user_id,
+        referral_id,
+        lvl: 1,
+        referral,
+      });
+      if (assign_ref_to_user) {
+        let user_parent_ref = await get_parent_referral(referral);
+        if (user_parent_ref) {
+          let assign_ref_to_user_lvl2 = await referral_binary_users.create({
+            user_id,
+            referral_id: user_parent_ref._id,
+            lvl: 2,
+            referral: user_parent_ref.referral,
+          });
+          return main_helper.success_response(res, [
+            assign_ref_to_user,
+            assign_ref_to_user_lvl2,
+          ]);
+        }
+        return main_helper.success_response(res, [assign_ref_to_user]);
+      } else {
+        return main_helper.error_response(res, "error");
+      }
     }
   } catch (e) {
     console.log(e.message);
     return main_helper.error_response(res, "error");
+  }
+};
+const get_parent_referral = async (referral) => {
+  try {
+    let parent_ref_check = await referral_links.findOne({
+      referral: referral,
+      referral_type: "binary",
+    });
+
+    let parent_ref_get = await referral_binary_users.findOne({
+      user_id: parent_ref_check.account_id,
+    });
+    if (!parent_ref_get) {
+      return false;
+    }
+
+    let parent_ref_lvl2 = await referral_links.findOne({
+      referral: parent_ref_get.referral,
+      referral_type: "binary",
+    });
+
+    return parent_ref_lvl2;
+  } catch (e) {
+    return false;
   }
 };
 const admin_setup = async (req, res) => {
