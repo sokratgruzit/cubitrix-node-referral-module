@@ -181,22 +181,7 @@ const get_parent_referral = async (referral) => {
 };
 const admin_setup = async (req, res) => {
   try {
-    let {
-      referral_activated,
-      referral_uni_percentage,
-      referral_binary_lvl1_percentage,
-      referral_binary_lvl2_percentage,
-    } = req.body;
-    let referral_options = {
-      referral_activated: referral_activated,
-      referral_uni_percentage: parseFloat(referral_uni_percentage),
-      referral_binary_lvl1_percentage: parseFloat(
-        referral_binary_lvl1_percentage
-      ),
-      referral_binary_lvl2_percentage: parseFloat(
-        referral_binary_lvl2_percentage
-      ),
-    };
+    let referral_options = req.body;
     let update = await global_helper.set_object_option_by_key(
       "referral_options",
       referral_options
