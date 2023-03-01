@@ -114,36 +114,46 @@ const assign_refferal_to_user = async (req, res) => {
           "User already activated binary level referral code"
         );
       }
-
-      let assign_ref_to_user = await referral_binary_users.create({
-        user_id,
-        referral_id,
-        lvl: 1,
+      let level_assignment = await referral_level_assignment(
+        1,
         referral,
-      });
-      if (assign_ref_to_user) {
-        let user_parent_ref = await get_parent_referral(referral);
-        if (user_parent_ref) {
-          let assign_ref_to_user_lvl2 = await referral_binary_users.create({
-            user_id,
-            referral_id: user_parent_ref._id,
-            lvl: 2,
-            referral: user_parent_ref.referral,
-          });
-          return main_helper.success_response(res, [
-            assign_ref_to_user,
-            assign_ref_to_user_lvl2,
-          ]);
-        }
-        return main_helper.success_response(res, [assign_ref_to_user]);
-      } else {
-        return main_helper.error_response(res, "error");
-      }
+        user_id,
+        referral_id
+      );
+      return main_helper.success_response(res, level_assignment);
     }
   } catch (e) {
     console.log(e.message);
     return main_helper.error_response(res, "error");
   }
+};
+const referral_level_assignment = async (
+  lvl = 1,
+  referral,
+  user_id,
+  referral_id,
+  final_data = []
+) => {
+  let assign_ref_to_user = await referral_binary_users.create({
+    user_id,
+    referral_id,
+    lvl,
+    referral,
+  });
+  if (assign_ref_to_user && lvl <= 11) {
+    final_data.push(assign_ref_to_user);
+    let user_parent_ref = await get_parent_referral(referral);
+    if (user_parent_ref) {
+      return await referral_level_assignment(
+        lvl + 1,
+        user_parent_ref.referral,
+        user_id,
+        user_parent_ref._id,
+        final_data
+      );
+    }
+  }
+  return final_data;
 };
 const get_parent_referral = async (referral) => {
   try {
