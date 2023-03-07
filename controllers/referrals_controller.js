@@ -2,6 +2,8 @@ const {
   referral_uni_users,
   referral_binary_users,
   referral_links,
+  accounts,
+  transactions,
 } = require("@cubitrix/models");
 const main_helper = require("../helpers/index");
 const global_helper = require("../helpers/global_helper");
@@ -192,6 +194,59 @@ const admin_setup = async (req, res) => {
     return main_helper.error_response(res, "error");
   }
 };
+// saving account in db
+async function get_referral_data_of_user(req, res) {
+  try {
+    let { address, limit, page } = req.body;
+    let referral_types = [
+      "referral_bonus_uni_level",
+      "referral_bonus_binary_level_1",
+      "referral_bonus_binary_level_2",
+      "referral_bonus_binary_level_3",
+      "referral_bonus_binary_level_4",
+      "referral_bonus_binary_level_5",
+      "referral_bonus_binary_level_6",
+      "referral_bonus_binary_level_7",
+      "referral_bonus_binary_level_8",
+      "referral_bonus_binary_level_9",
+      "referral_bonus_binary_level_10",
+      "referral_bonus_binary_level_11",
+    ];
+    let all_transactions = await transactions
+      .find({
+        to: address,
+        tx_type: {
+          $in: referral_types,
+        },
+      })
+      .limit(limit)
+      .skip(limit * (page - 1));
+    let transactions_data = await transactions.aggregate([
+      {
+        $match: {
+          to: address,
+          tx_type: {
+            $in: referral_types,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: { from: "$from", tx_type: "$tx_type" },
+          amount: { $sum: "$amount" },
+        },
+      },
+    ]);
+    return main_helper.success_response(res, {
+      // all_transactions,
+      transactions_data,
+      address,
+    });
+  } catch (e) {
+    return main_helper.error_response(res, e.message);
+  }
+}
+
 const get_referral_options = async (req, res) => {
   try {
     let get_referral_options = await global_helper.get_option_by_key(
@@ -311,4 +366,5 @@ module.exports = {
   get_referrals_by_code,
   assign_refferal_to_user,
   admin_setup,
+  get_referral_data_of_user,
 };

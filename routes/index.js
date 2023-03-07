@@ -26,6 +26,11 @@ router.post(
   "/assign_refferal_to_user",
   referral_controller.assign_refferal_to_user
 );
+router.post(
+  "/get_referral_data_of_user",
+  referral_controller.get_referral_data_of_user
+);
+
 router.post("/admin_setup", referral_controller.admin_setup);
 
 module.exports = router;
