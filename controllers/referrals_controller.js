@@ -212,16 +212,9 @@ async function get_referral_data_of_user(req, res) {
       "referral_bonus_binary_level_10",
       "referral_bonus_binary_level_11",
     ];
-    let all_transactions = await transactions
-      .find({
-        to: address,
-        tx_type: {
-          $in: referral_types,
-        },
-      })
-      .limit(limit)
-      .skip(limit * (page - 1));
-    let transactions_data = await transactions.aggregate([
+    // await transactions.deleteMany({ tx_type: { $in: referral_types } });
+    // return main_helper.success_response(res, "done");
+    let referral_code = await transactions.aggregate([
       {
         $match: {
           to: address,
@@ -231,15 +224,138 @@ async function get_referral_data_of_user(req, res) {
         },
       },
       {
+        $lookup: {
+          from: "account_metas",
+          localField: "from",
+          foreignField: "address",
+          as: "from",
+        },
+      },
+      {
+        $unwind: "$from",
+      },
+      {
         $group: {
-          _id: { from: "$from", tx_type: "$tx_type" },
+          _id: {
+            from: "$from.address",
+            tx_type: "$tx_type",
+            referrral: "$tx_options.referral",
+            referral_module: "$tx_options.referral_module",
+            lvl: "$tx_options.lvl",
+            percent: "$tx_options.percent",
+          },
           amount: { $sum: "$amount" },
         },
       },
+      {
+        $skip: limit * (page - 1),
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
     ]);
+    let referral_rebates_history = await transactions.aggregate([
+      {
+        $match: {
+          to: address,
+          tx_type: {
+            $in: referral_types,
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "account_metas",
+          localField: "from",
+          foreignField: "address",
+          as: "from",
+        },
+      },
+      {
+        $unwind: "$from",
+      },
+      {
+        $skip: limit * (page - 1),
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+    ]);
+    let total_referral_rebates_total = await transactions.aggregate([
+      {
+        $match: {
+          to: address,
+          tx_type: {
+            $in: referral_types,
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "account_metas",
+          localField: "from",
+          foreignField: "address",
+          as: "from",
+        },
+      },
+      {
+        $unwind: "$from",
+      },
+      {
+        $group: {
+          _id: "$tx_type",
+          amount: { $sum: "$amount" },
+        },
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+    ]);
+    let total_referral_rebates_weekly = await transactions.aggregate([
+      {
+        $match: {
+          to: address,
+          tx_type: {
+            $in: referral_types,
+          },
+          createdAt: {
+            $gte: new Date(new Date() - 7 * 60 * 60 * 24 * 1000),
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "account_metas",
+          localField: "from",
+          foreignField: "address",
+          as: "from",
+        },
+      },
+      {
+        $unwind: "$from",
+      },
+      {
+        $group: {
+          _id: "$tx_type",
+          amount: { $sum: "$amount" },
+        },
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+    ]);
+
     return main_helper.success_response(res, {
-      // all_transactions,
-      transactions_data,
+      total_referral_rebates_weekly,
+      total_referral_rebates_total,
+      referral_rebates_history,
+      referral_code,
       address,
     });
   } catch (e) {
