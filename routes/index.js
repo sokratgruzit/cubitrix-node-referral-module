@@ -30,6 +30,14 @@ router.post(
   "/get_referral_data_of_user",
   referral_controller.get_referral_data_of_user
 );
+router.post(
+  "/get_referral_code_of_user",
+  referral_controller.get_referral_code_of_user
+);
+router.post(
+  "/get_referral_rebates_history_of_user",
+  referral_controller.get_referral_rebates_history_of_user
+);
 
 router.post("/admin_setup", referral_controller.admin_setup);
 

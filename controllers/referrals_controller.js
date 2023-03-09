@@ -194,10 +194,9 @@ const admin_setup = async (req, res) => {
     return main_helper.error_response(res, "error");
   }
 };
-// saving account in db
 async function get_referral_data_of_user(req, res) {
   try {
-    let { address, limit, page } = req.body;
+    let { address } = req.body;
     let referral_types = [
       "referral_bonus_uni_level",
       "referral_bonus_binary_level_1",
@@ -212,81 +211,6 @@ async function get_referral_data_of_user(req, res) {
       "referral_bonus_binary_level_10",
       "referral_bonus_binary_level_11",
     ];
-    // await transactions.deleteMany({ tx_type: { $in: referral_types } });
-    // return main_helper.success_response(res, "done");
-    let referral_code = await transactions.aggregate([
-      {
-        $match: {
-          to: address,
-          tx_type: {
-            $in: referral_types,
-          },
-        },
-      },
-      {
-        $lookup: {
-          from: "account_metas",
-          localField: "from",
-          foreignField: "address",
-          as: "from",
-        },
-      },
-      {
-        $unwind: "$from",
-      },
-      {
-        $group: {
-          _id: {
-            from: "$from.address",
-            tx_type: "$tx_type",
-            referrral: "$tx_options.referral",
-            referral_module: "$tx_options.referral_module",
-            lvl: "$tx_options.lvl",
-            percent: "$tx_options.percent",
-          },
-          amount: { $sum: "$amount" },
-        },
-      },
-      {
-        $skip: limit * (page - 1),
-      },
-      {
-        $limit: limit,
-      },
-      {
-        $sort: { createdAt: -1 },
-      },
-    ]);
-    let referral_rebates_history = await transactions.aggregate([
-      {
-        $match: {
-          to: address,
-          tx_type: {
-            $in: referral_types,
-          },
-        },
-      },
-      {
-        $lookup: {
-          from: "account_metas",
-          localField: "from",
-          foreignField: "address",
-          as: "from",
-        },
-      },
-      {
-        $unwind: "$from",
-      },
-      {
-        $skip: limit * (page - 1),
-      },
-      {
-        $limit: limit,
-      },
-      {
-        $sort: { createdAt: -1 },
-      },
-    ]);
     let total_referral_rebates_total = await transactions.aggregate([
       {
         $match: {
@@ -354,9 +278,128 @@ async function get_referral_data_of_user(req, res) {
     return main_helper.success_response(res, {
       total_referral_rebates_weekly,
       total_referral_rebates_total,
-      referral_rebates_history,
+    });
+  } catch (e) {
+    return main_helper.error_response(res, e.message);
+  }
+}
+async function get_referral_code_of_user(req, res) {
+  try {
+    let { address, limit, page } = req.body;
+    let referral_types = [
+      "referral_bonus_uni_level",
+      "referral_bonus_binary_level_1",
+      "referral_bonus_binary_level_2",
+      "referral_bonus_binary_level_3",
+      "referral_bonus_binary_level_4",
+      "referral_bonus_binary_level_5",
+      "referral_bonus_binary_level_6",
+      "referral_bonus_binary_level_7",
+      "referral_bonus_binary_level_8",
+      "referral_bonus_binary_level_9",
+      "referral_bonus_binary_level_10",
+      "referral_bonus_binary_level_11",
+    ];
+    let referral_code = await transactions.aggregate([
+      {
+        $match: {
+          to: address,
+          tx_type: {
+            $in: referral_types,
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "account_metas",
+          localField: "from",
+          foreignField: "address",
+          as: "from",
+        },
+      },
+      {
+        $unwind: "$from",
+      },
+      {
+        $group: {
+          _id: {
+            from: "$from.address",
+            tx_type: "$tx_type",
+            referrral: "$tx_options.referral",
+            referral_module: "$tx_options.referral_module",
+            lvl: "$tx_options.lvl",
+            percent: "$tx_options.percent",
+          },
+          amount: { $sum: "$amount" },
+        },
+      },
+      {
+        $skip: limit * (page - 1),
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+    ]);
+    return main_helper.success_response(res, {
       referral_code,
-      address,
+    });
+  } catch (e) {
+    return main_helper.error_response(res, e.message);
+  }
+}
+async function get_referral_rebates_history_of_user(req, res) {
+  try {
+    let { address, limit, page } = req.body;
+    let referral_types = [
+      "referral_bonus_uni_level",
+      "referral_bonus_binary_level_1",
+      "referral_bonus_binary_level_2",
+      "referral_bonus_binary_level_3",
+      "referral_bonus_binary_level_4",
+      "referral_bonus_binary_level_5",
+      "referral_bonus_binary_level_6",
+      "referral_bonus_binary_level_7",
+      "referral_bonus_binary_level_8",
+      "referral_bonus_binary_level_9",
+      "referral_bonus_binary_level_10",
+      "referral_bonus_binary_level_11",
+    ];
+    let referral_rebates_history = await transactions.aggregate([
+      {
+        $match: {
+          to: address,
+          tx_type: {
+            $in: referral_types,
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "account_metas",
+          localField: "from",
+          foreignField: "address",
+          as: "from",
+        },
+      },
+      {
+        $unwind: "$from",
+      },
+      {
+        $skip: limit * (page - 1),
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+    ]);
+
+    return main_helper.success_response(res, {
+      referral_rebates_history,
     });
   } catch (e) {
     return main_helper.error_response(res, e.message);
@@ -483,4 +526,6 @@ module.exports = {
   assign_refferal_to_user,
   admin_setup,
   get_referral_data_of_user,
+  get_referral_code_of_user,
+  get_referral_rebates_history_of_user,
 };
