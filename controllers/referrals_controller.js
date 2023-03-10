@@ -343,8 +343,26 @@ async function get_referral_code_of_user(req, res) {
         $sort: { createdAt: -1 },
       },
     ]);
+    let total_records = await transactions.aggregate([
+      {
+        $match: {
+          to: address,
+          tx_type: {
+            $in: referral_types,
+          },
+        },
+      },
+      {
+        $count: "tx_hash",
+      },
+    ]);
+    let total_pages = 0;
+    if (total_records.length > 0) {
+      total_pages = total_records[0].tx_hash;
+    }
     return main_helper.success_response(res, {
       referral_code,
+      total_pages,
     });
   } catch (e) {
     return main_helper.error_response(res, e.message);
@@ -397,9 +415,27 @@ async function get_referral_rebates_history_of_user(req, res) {
         $sort: { createdAt: -1 },
       },
     ]);
-
+    let total_records = await transactions.aggregate([
+      {
+        $match: {
+          to: address,
+          tx_type: {
+            $in: referral_types,
+          },
+        },
+      },
+      {
+        $count: "tx_hash",
+      },
+    ]);
+    console.log(total_records);
+    let total_pages = 0;
+    if (total_records.length > 0) {
+      total_pages = total_records[0].tx_hash;
+    }
     return main_helper.success_response(res, {
       referral_rebates_history,
+      total_pages,
     });
   } catch (e) {
     return main_helper.error_response(res, e.message);
