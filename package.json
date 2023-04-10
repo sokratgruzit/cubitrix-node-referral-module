@@ -10,7 +10,6 @@
   "author": "jinx",
   "license": "MIT",
   "dependencies": {
-    "@cubitrix/models": ">=0.0.17",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
@@ -19,6 +18,9 @@
     "mongoose": "^6.8.1",
     "shortid": "^2.2.16",
     "web3": "^1.8.1"
+  },
+  "peerDependencies": {
+    "@cubitrix/models": ">=0.0.42"
   },
   "devDependencies": {
     "nodemon": "^2.0.20"
