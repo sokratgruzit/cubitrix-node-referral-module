@@ -143,7 +143,6 @@ const referral_level_assignment = async (
   referral_id,
   final_data = [],
 ) => {
-  console.log(lvl, "runs");
   let assign_ref_to_user = await referral_binary_users.create({
     user_id,
     referral_id,
@@ -356,8 +355,6 @@ async function get_referral_code_of_user(req, res) {
         $sort: { createdAt: -1 },
       },
     ]);
-
-    console.log(referral_code);
 
     let total_records = await transactions.aggregate([
       {
