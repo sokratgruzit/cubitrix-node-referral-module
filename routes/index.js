@@ -18,6 +18,10 @@ router.post(
   "/get_referral_rebates_history_of_user",
   referral_controller.get_referral_rebates_history_of_user,
 );
+router.post(
+  "/get_referral_code_of_user_dashboard",
+  referral_controller.get_referral_code_of_user_dashboard
+);
 
 router.post("/admin_setup", referral_controller.admin_setup);
 
