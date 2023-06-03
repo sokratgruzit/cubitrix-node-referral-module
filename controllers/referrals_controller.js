@@ -241,6 +241,7 @@ async function get_referral_data_of_user(req, res) {
         $sort: { createdAt: -1 },
       },
     ]);
+
     let total_referral_rebates_weekly = await transactions.aggregate([
       {
         $match: {
@@ -286,6 +287,8 @@ async function get_referral_data_of_user(req, res) {
 async function get_referral_code_of_user(req, res) {
   try {
     let { address, limit, page } = req.body;
+    address = address.toLowerCase();
+
     let referral_types = [
       "referral_bonus_uni_level",
       "referral_bonus_binary_level_1",
@@ -363,6 +366,101 @@ async function get_referral_code_of_user(req, res) {
     return main_helper.success_response(res, {
       referral_code,
       total_pages,
+    });
+  } catch (e) {
+    return main_helper.error_response(res, e.message);
+  }
+}
+
+async function get_referral_code_of_user_dashboard(req, res) {
+  try {
+    let { address } = req.body;
+    address = address.toLowerCase();
+
+    let referral_types = [
+      "referral_bonus_binary_level_1",
+      "referral_bonus_binary_level_2",
+      "referral_bonus_binary_level_3",
+      "referral_bonus_binary_level_4",
+      "referral_bonus_binary_level_5",
+      "referral_bonus_binary_level_6",
+      "referral_bonus_binary_level_7",
+      "referral_bonus_binary_level_8",
+      "referral_bonus_binary_level_9",
+      "referral_bonus_binary_level_10",
+      "referral_bonus_binary_level_11",
+    ];
+
+    let referral_sum_binary = await transactions.aggregate([
+      {
+        $match: {
+          to: address,
+          tx_type: {
+            $in: referral_types,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            referrral: "$tx_options.referral",
+            referral_module: "$tx_options.referral_module",
+          },
+          amount: { $sum: "$amount" },
+        },
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+    ]);
+    let referral_sum_uni = await transactions.aggregate([
+      {
+        $match: {
+          to: address,
+          tx_type: "referral_bonus_uni_level",
+        },
+      },
+      {
+        $group: {
+          _id: {
+            referrral: "$tx_options.referral",
+            referral_module: "$tx_options.referral_module",
+          },
+          amount: { $sum: "$amount" },
+        },
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+    ]);
+
+    address = address.toLowerCase();
+
+    let referral_codes_count = await get_referral_by_address(address);
+
+    let referral_uni_code, referral_binary_code;
+
+    for (let i = 0; i < referral_codes_count.length; i++) {
+      if (referral_codes_count[i].referral_type == "uni") {
+        referral_uni_code = referral_codes_count[i].referral;
+      } else {
+        referral_binary_code = referral_codes_count[i].referral;
+      }
+    }
+
+    let referral_count_binary = await referral_binary_users.count({
+      referral: referral_binary_code,
+    });
+
+    let referral_count_uni = await referral_uni_users.count({
+      referral: referral_uni_code,
+    });
+
+    return main_helper.success_response(res, {
+      referral_sum_binary,
+      referral_sum_uni,
+      referral_count_binary,
+      referral_count_uni,
     });
   } catch (e) {
     return main_helper.error_response(res, e.message);
@@ -564,4 +662,5 @@ module.exports = {
   get_referral_data_of_user,
   get_referral_code_of_user,
   get_referral_rebates_history_of_user,
+  get_referral_code_of_user_dashboard,
 };
