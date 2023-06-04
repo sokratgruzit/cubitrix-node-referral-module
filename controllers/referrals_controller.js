@@ -88,10 +88,16 @@ const assign_refferal_to_user = async (req, res) => {
       return main_helper.error_response(res, "Referral code doesnot exist");
     }
     if (ref_check_author?.account_id == user_id) {
-      return main_helper.error_response(res, "You cannot activate your own code");
+      return main_helper.error_response(
+        res,
+        "You cannot activate your own code"
+      );
     }
     if (check_ref.uni && check_ref.binary) {
-      return main_helper.error_response(res, "User already activated both referral code");
+      return main_helper.error_response(
+        res,
+        "User already activated both referral code"
+      );
     }
 
     let full_referral = await global_helper.get_referral_by_code(referral);
@@ -102,7 +108,7 @@ const assign_refferal_to_user = async (req, res) => {
       if (check_ref.uni) {
         return main_helper.error_response(
           res,
-          "User already activated uni level referral code",
+          "User already activated uni level referral code"
         );
       }
       let assign_ref_to_user = await referral_uni_users.create({
@@ -120,14 +126,14 @@ const assign_refferal_to_user = async (req, res) => {
       if (check_ref.binary) {
         return main_helper.error_response(
           res,
-          "User already activated binary level referral code",
+          "User already activated binary level referral code"
         );
       }
       let level_assignment = await referral_level_assignment(
         1,
         referral,
         user_id,
-        referral_id,
+        referral_id
       );
       return main_helper.success_response(res, level_assignment);
     }
@@ -141,7 +147,7 @@ const referral_level_assignment = async (
   referral,
   user_id,
   referral_id,
-  final_data = [],
+  final_data = []
 ) => {
   let assign_ref_to_user = await referral_binary_users.create({
     user_id,
@@ -158,7 +164,7 @@ const referral_level_assignment = async (
         user_parent_ref.referral,
         user_id,
         user_parent_ref._id,
-        final_data,
+        final_data
       );
     }
   }
@@ -193,7 +199,7 @@ const admin_setup = async (req, res) => {
     let referral_options = req.body;
     let update = await global_helper.set_object_option_by_key(
       "referral_options",
-      referral_options,
+      referral_options
     );
     return main_helper.success_response(res, update);
   } catch (e) {
@@ -205,6 +211,10 @@ async function get_referral_data_of_user(req, res) {
   try {
     let { address } = req.body;
     if (address) address = address.toLowerCase();
+    let system_address_referral_txs = await accounts.findOne({
+      $or: [{ account_owner: address }, { address }],
+      account_category: "system",
+    });
 
     let referral_types = [
       "referral_bonus_uni_level",
@@ -223,7 +233,7 @@ async function get_referral_data_of_user(req, res) {
     let total_referral_rebates_total = await transactions.aggregate([
       {
         $match: {
-          to: address,
+          to: system_address_referral_txs?.address,
           tx_type: {
             $in: referral_types,
           },
@@ -254,7 +264,7 @@ async function get_referral_data_of_user(req, res) {
     let total_referral_rebates_weekly = await transactions.aggregate([
       {
         $match: {
-          to: address,
+          to: system_address_referral_txs?.address,
           tx_type: {
             $in: referral_types,
           },
@@ -297,6 +307,10 @@ async function get_referral_code_of_user(req, res) {
   try {
     let { address, limit, page } = req.body;
     if (address) address = address.toLowerCase();
+    let system_address_referral_txs = await accounts.findOne({
+      $or: [{ account_owner: address }, { address }],
+      account_category: "system",
+    });
 
     let referral_types = [
       "referral_bonus_uni_level",
@@ -315,7 +329,7 @@ async function get_referral_code_of_user(req, res) {
     let referral_code = await transactions.aggregate([
       {
         $match: {
-          to: address,
+          to: system_address_referral_txs?.address,
           tx_type: {
             $in: referral_types,
           },
@@ -359,7 +373,7 @@ async function get_referral_code_of_user(req, res) {
     let total_records = await transactions.aggregate([
       {
         $match: {
-          to: address,
+          to: system_address_referral_txs?.address,
           tx_type: {
             $in: referral_types,
           },
@@ -386,6 +400,10 @@ async function get_referral_code_of_user_dashboard(req, res) {
   try {
     let { address } = req.body;
     address = address.toLowerCase();
+    let system_address_referral_txs = await accounts.findOne({
+      $or: [{ account_owner: address }, { address }],
+      account_category: "system",
+    });
 
     let referral_types = [
       "referral_bonus_binary_level_1",
@@ -404,7 +422,7 @@ async function get_referral_code_of_user_dashboard(req, res) {
     let referral_sum_binary = await transactions.aggregate([
       {
         $match: {
-          to: address,
+          to: system_address_referral_txs?.address,
           tx_type: {
             $in: referral_types,
           },
@@ -426,7 +444,7 @@ async function get_referral_code_of_user_dashboard(req, res) {
     let referral_sum_uni = await transactions.aggregate([
       {
         $match: {
-          to: address,
+          to: system_address_referral_txs?.address,
           tx_type: "referral_bonus_uni_level",
         },
       },
@@ -480,6 +498,11 @@ async function get_referral_rebates_history_of_user(req, res) {
   try {
     let { address, limit, page } = req.body;
     if (address) address = address.toLowerCase();
+    let system_address_referral_txs = await accounts.findOne({
+      $or: [{ account_owner: address }, { address }],
+      account_category: "system",
+    });
+
     let referral_types = [
       "referral_bonus_uni_level",
       "referral_bonus_binary_level_1",
@@ -497,7 +520,7 @@ async function get_referral_rebates_history_of_user(req, res) {
     let referral_rebates_history = await transactions.aggregate([
       {
         $match: {
-          to: address,
+          to: system_address_referral_txs?.address,
           tx_type: {
             $in: referral_types,
           },
@@ -527,7 +550,7 @@ async function get_referral_rebates_history_of_user(req, res) {
     let total_records = await transactions.aggregate([
       {
         $match: {
-          to: address,
+          to: system_address_referral_txs?.address,
           tx_type: {
             $in: referral_types,
           },
@@ -552,9 +575,14 @@ async function get_referral_rebates_history_of_user(req, res) {
 
 const get_referral_options = async (req, res) => {
   try {
-    let get_referral_options = await global_helper.get_option_by_key("referral_options");
+    let get_referral_options = await global_helper.get_option_by_key(
+      "referral_options"
+    );
     if (get_referral_options.success) {
-      return main_helper.success_response(res, get_referral_options?.data?.object_value);
+      return main_helper.success_response(
+        res,
+        get_referral_options?.data?.object_value
+      );
     } else {
       return main_helper.success_response(res, {});
     }
@@ -588,17 +616,25 @@ const bind_referral_to_user = async (req, res) => {
     if (check_by_address.length > 0) {
       return main_helper.error_response(
         res,
-        "referrals on this address already exists or address is invalid",
+        "referrals on this address already exists or address is invalid"
       );
     }
     for (let i = 0; i < referrals.length; i++) {
       let check_by_code_uni = await get_referral_by_code(referrals[i].uni);
       if (check_by_code_uni.length > 0) {
-        return main_helper.error_response(res, "referral uni code already used");
+        return main_helper.error_response(
+          res,
+          "referral uni code already used"
+        );
       }
-      let check_by_code_binary = await get_referral_by_code(referrals[i].binary);
+      let check_by_code_binary = await get_referral_by_code(
+        referrals[i].binary
+      );
       if (check_by_code_binary.length > 0) {
-        return main_helper.error_response(res, "referral binary code already used");
+        return main_helper.error_response(
+          res,
+          "referral binary code already used"
+        );
       }
     }
 
@@ -614,7 +650,10 @@ const bind_referral_to_user = async (req, res) => {
       let referral_links_in_db = await referral_links.find({ account_id });
       return main_helper.success_response(res, referral_links_in_db);
     } else {
-      return main_helper.error_response(res, "error saving referral code to user");
+      return main_helper.error_response(
+        res,
+        "error saving referral code to user"
+      );
     }
   } catch (e) {
     console.log(e.message);
