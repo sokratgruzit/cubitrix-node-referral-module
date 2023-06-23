@@ -6,7 +6,6 @@ const cookieParser = require("cookie-parser");
 
 router.use(cookieParser());
 router.get("/get_referral_options", referral_controller.get_referral_options);
-router.get("/generate_referral_codes", referral_controller.generate_referral_codes);
 
 router.post("/bind_referral_to_user", referral_controller.bind_referral_to_user);
 router.post("/get_referrals_by_address", referral_controller.get_referrals_by_address);
