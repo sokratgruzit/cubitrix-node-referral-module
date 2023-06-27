@@ -8,6 +8,49 @@ const {
 const main_helper = require("../helpers/index");
 const global_helper = require("../helpers/global_helper");
 const shortid = require("shortid");
+const ref_service = require("../services/referral");
+
+// auto generate referral place
+// auto generate referrral place by side(left right)
+// place referral
+// place referral unilevel
+// bind referral unilevel in above mentioned methods
+// calculate daily referral bonus binary by stake amount to all lvls
+// calculate daily referral bonus unilevel by stake amount to all lvl
+
+const register_referral = async (req, res) => {
+  try {
+    let { referral_address, user_address, side } = req.body;
+    referral_address = referral_address.toLowerCase();
+    user_address = user_address.toLowerCase();
+    let auto_place = await ref_service.calculate_referral_best_place(
+      referral_address,
+      user_address,
+      side
+    );
+    return main_helper.success_response(res, auto_place);
+
+    if (auto_place) {
+      let auto_place_exists = await referral_binary_users.findOne({
+        referral_address: auto_place.referral_address,
+        user_address: auto_place.user_address,
+      });
+      if (!auto_place_exists) {
+        await referral_binary_users.create(auto_place);
+      } else {
+        return main_helper.error_response(
+          res,
+          "user already registere for this referral code"
+        );
+      }
+    }
+
+    return main_helper.success_response(res, auto_place);
+  } catch (e) {
+    console.log(e.message);
+    return main_helper.error_response(res, "error");
+  }
+};
 
 const get_referral_by_code = async (referral) => {
   try {
@@ -63,7 +106,7 @@ const user_already_have_referral_code = async (user_id) => {
   }
 };
 
-// const assign_refferal_to_user = async (req, res) => { 
+// const assign_refferal_to_user = async (req, res) => {
 //   try {
 //     let { referral, address } = req.body;
 //     if (address) address = address.toLowerCase();
@@ -134,9 +177,7 @@ const user_already_have_referral_code = async (user_id) => {
 //   }
 // };
 
-const assign_refferal_to_user = async (req, res) => {
-
-}
+const assign_refferal_to_user = async (req, res) => {};
 
 const referral_level_assignment = async (
   lvl = 1,
@@ -400,7 +441,7 @@ async function get_referral_code_of_user_dashboard(req, res) {
       $or: [{ account_owner: address }, { address }],
       account_category: "system",
     });
-  
+
     let referral_types = [
       "referral_bonus_binary_level_1",
       "referral_bonus_binary_level_2",
@@ -414,7 +455,7 @@ async function get_referral_code_of_user_dashboard(req, res) {
       "referral_bonus_binary_level_10",
       "referral_bonus_binary_level_11",
     ];
-  
+
     let referral_sum_binary = await transactions.aggregate([
       {
         $match: {
@@ -457,13 +498,13 @@ async function get_referral_code_of_user_dashboard(req, res) {
         $sort: { createdAt: -1 },
       },
     ]);
-  
+
     address = address.toLowerCase();
-  
+
     let referral_codes_count = await get_referral_by_address(address);
-  
+
     let referral_uni_code, referral_binary_code;
-  
+
     for (let i = 0; i < referral_codes_count.length; i++) {
       if (referral_codes_count[i].referral_type == "uni") {
         referral_uni_code = referral_codes_count[i].referral;
@@ -471,15 +512,15 @@ async function get_referral_code_of_user_dashboard(req, res) {
         referral_binary_code = referral_codes_count[i].referral;
       }
     }
-  
+
     let referral_count_binary = await referral_binary_users.count({
       referral: referral_binary_code,
     });
-  
+
     let referral_count_uni = await referral_uni_users.count({
       referral: referral_uni_code,
     });
-  
+
     return main_helper.success_response(res, {
       referral_sum_binary,
       referral_sum_uni,
@@ -498,7 +539,7 @@ async function get_referral_rebates_history_of_user(req, res) {
       $or: [{ account_owner: address }, { address }],
       account_category: "system",
     });
-  
+
     let referral_types = [
       "referral_bonus_uni_level",
       "referral_bonus_binary_level_1",
@@ -593,16 +634,13 @@ const bind_referral_to_user = async (req, res) => {
     let { address } = req.body;
     if (address) address = address.toLowerCase();
 
-    const { address: main_acc_address} = await accounts.findOne({
+    const { address: main_acc_address } = await accounts.findOne({
       account_owner: address,
-      account_category: 'system'
+      account_category: "system",
     });
 
     if (main_acc_address) {
-      return main_helper.error_response(
-        res,
-        "main account address not found"
-      );  
+      return main_helper.error_response(res, "main account address not found");
     }
 
     let referrals = {
@@ -696,4 +734,5 @@ module.exports = {
   get_referral_code_of_user,
   get_referral_rebates_history_of_user,
   get_referral_code_of_user_dashboard,
+  register_referral,
 };
