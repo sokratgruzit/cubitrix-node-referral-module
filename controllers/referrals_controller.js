@@ -52,6 +52,29 @@ const register_referral = async (req, res) => {
   }
 };
 
+const get_referral_data = async (req, res) => {
+  try {
+    let response = {};
+    let { address, page, limit } = req.body;
+    let user_binary = await referral_binary_users
+      .find({
+        referral_address: address,
+      })
+      .sort({ lvl: "asc", position: "asc" })
+      .limit(10)
+      .skip((page - 1) * limit);
+    response.list = user_binary;
+    let total_page = await referral_binary_users.count();
+    response.total_page = Math.ceil(total_page / limit);
+    response.page = page;
+    response.limit = limit;
+    return main_helper.success_response(res, response);
+  } catch (e) {
+    console.log(e.message);
+    return main_helper.error_response(res, "error");
+  }
+};
+
 // const get_referral_by_code = async (referral) => {
 //   try {
 //     let code_exists = await referral_links.find({
@@ -735,4 +758,5 @@ module.exports = {
   // get_referral_rebates_history_of_user,
   // get_referral_code_of_user_dashboard,
   register_referral,
+  get_referral_data,
 };

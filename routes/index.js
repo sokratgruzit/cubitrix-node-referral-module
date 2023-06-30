@@ -44,5 +44,6 @@ router.use(cookieParser());
 
 // auto generate referral place
 router.post("/register_referral", referral_controller.register_referral);
+router.post("/get_referral_data", referral_controller.get_referral_data);
 
 module.exports = router;
