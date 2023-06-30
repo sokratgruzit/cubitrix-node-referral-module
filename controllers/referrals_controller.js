@@ -75,6 +75,52 @@ const get_referral_data = async (req, res) => {
   }
 };
 
+const get_referral_tree = async (req, res) => {
+  try {
+    let { address, second_address } = req.body;
+    let lvl = 1;
+    let minLevel = lvl;
+    let maxLevel = lvl + 3;
+
+    if (!second_address) {
+      second_address = address;
+    }
+
+    if (second_address != address) {
+      let checkAddress = await referral_binary_users.findOne({
+        referral_address: address,
+        user_address: second_address,
+      });
+      let max_level_for_new_tree = 8 - checkAddress.lvl;
+      if (max_level_for_new_tree < maxLevel) {
+        maxLevel = max_level_for_new_tree;
+      }
+    }
+
+    let check_referral_for_users = await referral_binary_users.aggregate([
+      {
+        $match: {
+          referral_address: second_address,
+          lvl: { $gte: minLevel, $lt: maxLevel },
+        },
+      },
+      {
+        $group: {
+          _id: "$lvl",
+          documents: { $push: "$$ROOT" },
+        },
+      },
+    ]);
+    check_referral_for_users.sort((a, b) => {
+      return a._id - b._id;
+    });
+    return main_helper.success_response(res, check_referral_for_users);
+  } catch (e) {
+    console.log(e.message);
+    return main_helper.error_response(res, "error getting referral tree");
+  }
+};
+
 // const get_referral_by_code = async (referral) => {
 //   try {
 //     let code_exists = await referral_links.find({
@@ -759,4 +805,5 @@ module.exports = {
   // get_referral_code_of_user_dashboard,
   register_referral,
   get_referral_data,
+  get_referral_tree,
 };
