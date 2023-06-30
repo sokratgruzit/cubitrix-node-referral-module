@@ -23,7 +23,6 @@ const calculate_referral_best_place = async (
       side,
       binary_max_lvl
     );
-    // console.log(free_spaces);
     let returndata;
     if (free_spaces && Array.isArray(free_spaces) && free_spaces.length > 0) {
       let free_space = free_spaces[0];
@@ -44,8 +43,11 @@ const calculate_referral_best_place = async (
         returndata.referral_address,
         returndata.lvl,
         returndata.position,
-        returndata.position
+        returndata.position,
+        [],
+        returndata.referral_address
       );
+
       return recursion;
     } else if (returndata.lvl > 1) {
       let position = 1;
@@ -53,20 +55,20 @@ const calculate_referral_best_place = async (
       if (returndata.position % 2 == 0) {
         position = 2;
       }
-      console.log(returndata);
       let find_parent = await referral_binary_users.findOne({
         referral_address: returndata.referral_address,
         lvl: returndata.lvl - 1,
         position: parent_position,
       });
-      console.log(find_parent);
       //   return;
       recursion = await binary_recursion(
         returndata.user_address,
         find_parent.user_address,
         1,
         position,
-        returndata.position
+        returndata.position,
+        [],
+        find_parent.user_address
       );
     }
 
@@ -79,32 +81,38 @@ const calculate_referral_best_place = async (
 
 const binary_recursion = async (
   user_address,
-  referral_address,
+  referral_address_modified,
   lvl,
   position,
   last_position,
-  final_data = []
+  final_data = [],
+  referral_address
 ) => {
   let max_level_binary = 11;
   let already_exists = await referral_binary_users.findOne({
     user_address: user_address,
-    referral_address: referral_address,
+    referral_address: referral_address_modified,
   });
   if (already_exists) {
     return final_data;
   }
+  let max_lvl_position = Math.pow(2, lvl);
+  let side = "right";
+  if (position <= max_lvl_position / 2) {
+    side = "left";
+  }
   let assign_ref_to_user = await referral_binary_users.create({
     user_address,
-    referral_address,
+    referral_address: referral_address_modified,
     lvl,
+    side,
     position,
   });
-  console.log(assign_ref_to_user, lvl, max_level_binary);
   if (assign_ref_to_user && lvl <= max_level_binary) {
     final_data.push(assign_ref_to_user);
     let user_parent_ref = await referral_binary_users.findOne({
       user_address: referral_address,
-      lvl: 1,
+      lvl: lvl,
     });
     if (user_parent_ref) {
       let real_position_for_calc = user_parent_ref.position;
@@ -120,7 +128,8 @@ const binary_recursion = async (
         lvl + 1,
         real_position,
         last_position,
-        final_data
+        final_data,
+        referral_address
       );
     }
   }
@@ -179,7 +188,6 @@ const check_free_space_for_user = async (
       }
     }
     let free_positions = [];
-    console.log(check_referral_for_users, max_referral_lvl_for_user_used);
     for (let k = 0; k < freespaces.length; k++) {
       let check_one = freespaces[k];
       let max_pow = Math.pow(2, check_one._id);
