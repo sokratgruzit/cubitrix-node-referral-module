@@ -105,9 +105,29 @@ const get_referral_tree = async (req, res) => {
         },
       },
       {
+        $lookup: {
+          from: "accounts", // Name of the "accounts" collection
+          localField: "user_address", // Field in "referral_binary_users" collection
+          foreignField: "address", // Field in "accounts" collection
+          as: "joinedAccounts", // Field name for the joined documents
+        },
+      },
+      {
+        $lookup: {
+          from: "account_metas", // Name of the "account_metas" collection
+          localField: "joinedAccounts.0.account_owner", // Field in "joinedAccounts" array
+          foreignField: "address", // Field in "account_metas" collection
+          as: "joinedAccountMetas", // Field name for the joined documents
+        },
+      },
+      {
         $group: {
           _id: "$lvl",
-          documents: { $push: "$$ROOT" },
+          documents: {
+            $push: {
+              $mergeObjects: ["$$ROOT"],
+            },
+          },
         },
       },
     ]);
