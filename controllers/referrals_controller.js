@@ -56,13 +56,42 @@ const get_referral_data = async (req, res) => {
   try {
     let response = {};
     let { address, page, limit } = req.body;
-    let user_binary = await referral_binary_users
-      .find({
-        referral_address: address,
-      })
-      .sort({ lvl: "asc", position: "asc" })
-      .limit(10)
-      .skip((page - 1) * limit);
+    let user_binary = await referral_binary_users.aggregate([
+      {
+        $match: {
+          referral_address: address,
+        },
+      },
+      {
+        $lookup: {
+          from: "accounts",
+          localField: "user_address",
+          foreignField: "address",
+          as: "joinedAccounts",
+        },
+      },
+      {
+        $lookup: {
+          from: "account_metas", // Name of the "account_metas" collection
+          localField: "joinedAccounts.0.account_owner", // Field in "joinedAccounts" array
+          foreignField: "address", // Field in "account_metas" collection
+          as: "joinedAccountMetas", // Field name for the joined documents
+        },
+      },
+      {
+        $sort: {
+          lvl: 1,
+          position: 1,
+        },
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $skip: (page - 1) * limit,
+      },
+    ]);
+
     response.list = user_binary;
     let total_page = await referral_binary_users.count();
     response.total_page = Math.ceil(total_page / limit);
