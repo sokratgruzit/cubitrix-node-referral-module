@@ -28,22 +28,14 @@ const register_referral = async (req, res) => {
       user_address,
       side
     );
-    return main_helper.success_response(res, auto_place);
 
-    if (auto_place) {
-      let auto_place_exists = await referral_binary_users.findOne({
-        referral_address: auto_place.referral_address,
-        user_address: auto_place.user_address,
-      });
-      if (!auto_place_exists) {
-        await referral_binary_users.create(auto_place);
-      } else {
-        return main_helper.error_response(
-          res,
-          "user already registere for this referral code"
-        );
-      }
-    }
+    let auto_place_uni = await ref_service.calculate_referral_best_place_uni(
+      referral_address,
+      user_address,
+      1,
+      []
+    );
+    return main_helper.success_response(res, { auto_place, auto_place_uni });
 
     return main_helper.success_response(res, auto_place);
   } catch (e) {

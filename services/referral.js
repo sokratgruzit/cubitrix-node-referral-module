@@ -79,6 +79,35 @@ const calculate_referral_best_place = async (
   }
 };
 
+const calculate_referral_best_place_uni = async (
+  referral_address,
+  user_address,
+  lvl,
+  final_data
+) => {
+  let assign_ref_to_user = await referral_uni_users.create({
+    referral_address,
+    user_address,
+    lvl,
+  });
+  if (assign_ref_to_user && lvl <= 10) {
+    final_data.push(assign_ref_to_user);
+    let user_parent_ref = await referral_uni_users.findOne({
+      user_address: referral_address,
+      lvl: 1,
+    });
+    if (user_parent_ref) {
+      return await calculate_referral_best_place_uni(
+        user_parent_ref.referral_address,
+        user_address,
+        lvl + 1,
+        final_data
+      );
+    }
+  }
+  return final_data;
+};
+
 const binary_recursion = async (
   user_address,
   referral_address_modified,
@@ -252,4 +281,7 @@ const check_free_space_for_user = async (
   }
 };
 
-module.exports = { calculate_referral_best_place };
+module.exports = {
+  calculate_referral_best_place,
+  calculate_referral_best_place_uni,
+};
