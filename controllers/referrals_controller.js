@@ -96,6 +96,58 @@ const get_referral_data = async (req, res) => {
   }
 };
 
+const get_referral_data_uni = async (req, res) => {
+  try {
+    let response = {};
+    let { address, page, limit } = req.body;
+    let user_uni = await referral_uni_users.aggregate([
+      {
+        $match: {
+          referral_address: address,
+        },
+      },
+      {
+        $lookup: {
+          from: "accounts",
+          localField: "user_address",
+          foreignField: "address",
+          as: "joinedAccounts",
+        },
+      },
+      {
+        $lookup: {
+          from: "account_metas", // Name of the "account_metas" collection
+          localField: "joinedAccounts.0.account_owner", // Field in "joinedAccounts" array
+          foreignField: "address", // Field in "account_metas" collection
+          as: "joinedAccountMetas", // Field name for the joined documents
+        },
+      },
+      {
+        $sort: {
+          lvl: 1,
+          position: 1,
+        },
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $skip: (page - 1) * limit,
+      },
+    ]);
+
+    response.list = user_uni;
+    let total_page = await referral_uni_users.count();
+    response.total_page = Math.ceil(total_page / limit);
+    response.page = page;
+    response.limit = limit;
+    return main_helper.success_response(res, response);
+  } catch (e) {
+    console.log(e.message);
+    return main_helper.error_response(res, "error");
+  }
+};
+
 const get_referral_tree = async (req, res) => {
   try {
     let { address, second_address } = req.body;
@@ -847,4 +899,5 @@ module.exports = {
   register_referral,
   get_referral_data,
   get_referral_tree,
+  get_referral_data_uni,
 };

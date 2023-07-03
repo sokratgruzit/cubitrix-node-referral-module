@@ -46,5 +46,9 @@ router.use(cookieParser());
 router.post("/register_referral", referral_controller.register_referral);
 router.post("/get_referral_data", referral_controller.get_referral_data);
 router.post("/get_referral_tree", referral_controller.get_referral_tree);
+router.post(
+  "/get_referral_data_uni",
+  referral_controller.get_referral_data_uni
+);
 
 module.exports = router;
