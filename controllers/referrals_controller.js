@@ -221,7 +221,9 @@ const get_referral_tree = async (req, res) => {
       return a._id - b._id;
     });
     let missing_positions = [];
-    for (let i = 1; i <= check_referral_for_users.length; i++) {
+    let no_position_child = [];
+    let final_result = [];
+    for (let i = 1; i < check_referral_for_users.length; i++) {
       let one_ref = check_referral_for_users[i];
       let max_pow_on_this_row = Math.pow(2, one_ref._id);
       if (one_ref.documents.length < max_pow_on_this_row) {
@@ -231,14 +233,44 @@ const get_referral_tree = async (req, res) => {
               lvl: one_ref._id,
               position: k,
             });
+            no_position_child.push({
+              lvl: one_ref._id + 1,
+              position: k * 2 - 1,
+            });
+            no_position_child.push({
+              lvl: one_ref._id + 1,
+              position: k * 2,
+            });
           }
         }
       }
     }
+    for (let i = 0; i < check_referral_for_users.length; i++) {
+      let one_ref = check_referral_for_users[i];
+      let max_pow_on_this_row = Math.pow(2, one_ref._id);
+      let this_row = [];
+      for (let k = 1; k <= max_pow_on_this_row; k++) {
+        let index = _.findIndex(one_ref.documents, { position: k });
+        if (index < 0) {
+          if (_.find(no_position_child, { lvl: one_ref._id, position: k })) {
+            this_row.push({ lvl: one_ref._id, position: k, type: "nothing" });
+          } else if (
+            _.find(missing_positions, { lvl: one_ref._id, position: k })
+          ) {
+            this_row.push({ lvl: one_ref._id, position: k, type: "missing" });
+          }
+        } else {
+          this_row.push(one_ref.documents[index]);
+        }
+      }
+      final_result.push({
+        lvl: one_ref._id,
+        documents: this_row,
+      });
+    }
 
     return main_helper.success_response(res, {
-      check_referral_for_users,
-      missing_positions,
+      final_result,
     });
   } catch (e) {
     console.log(e.message);
