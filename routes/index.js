@@ -16,4 +16,6 @@ router.post(
   referral_controller.get_referral_data_uni
 );
 
+router.post("/get_referral_code", referral_controller.get_referral_code);
+
 module.exports = router;

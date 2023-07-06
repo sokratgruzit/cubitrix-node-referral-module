@@ -9,6 +9,7 @@ const {
 const main_helper = require("../helpers/index");
 const global_helper = require("../helpers/global_helper");
 const moment = require("moment");
+const crypto = require("crypto");
 
 // sides can be ["auto", "left", "right", "selected"]
 const calculate_referral_best_place = async (
@@ -167,6 +168,28 @@ const binary_recursion = async (
   return final_data;
 };
 
+const secretKey = "YourSecretKey";
+
+function encrypt(address, lvl, position) {
+  const cipher = crypto.createCipher("aes-256-cbc", secretKey);
+  let plaintext = lvl + "_" + position;
+  let encrypted = cipher.update(plaintext, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  return address + "_" + encrypted;
+}
+
+function decrypt(encryptedText) {
+  const decipher = crypto.createDecipher("aes-256-cbc", secretKey);
+  let decrypted = decipher.update(encryptedText, "hex", "utf8");
+  decrypted += decipher.final("utf8");
+  return decrypted;
+}
+
+function hashSecretKey(secretKey) {
+  const hash = crypto.createHash("sha256");
+  return hash.update(secretKey).digest("hex");
+}
+
 const check_free_space_for_user = async (
   referral_code,
   side,
@@ -177,12 +200,16 @@ const check_free_space_for_user = async (
     if (parts.length < 1) {
       return false;
     }
+
     let referral_address = parts[0];
-    if (parts.length == 3) {
+    if (parts.length == 2) {
+      const hashedSecretKey = hashSecretKey(secretKey);
+      const decryptedText = decrypt(parts[1], hashedSecretKey);
+      const parts2 = decryptedText.split("_");
       let check_manual_referral_used = await referral_binary_users.findOne({
         referral_address: referral_address,
-        lvl: parts[1],
-        position: parts[2],
+        lvl: parts2[0],
+        position: parts2[1],
       });
       if (check_manual_referral_used) {
         return "code is already used";
@@ -286,4 +313,5 @@ const check_free_space_for_user = async (
 module.exports = {
   calculate_referral_best_place,
   calculate_referral_best_place_uni,
+  encrypt,
 };

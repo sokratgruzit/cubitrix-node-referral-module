@@ -278,6 +278,20 @@ const get_referral_tree = async (req, res) => {
   }
 };
 
+const get_referral_code = async (req, res) => {
+  try {
+    let { address, lvl, position } = req.body;
+    if (!address && !lvl && !position) {
+      return main_helper.error_message(res, "please provide all position");
+    }
+    let encrypted = ref_service.encrypt(address, lvl, position);
+    return main_helper.success_response(res, encrypted);
+  } catch (e) {
+    console.log(e.message);
+    return main_helper.error_response(res, "error");
+  }
+};
+
 // const admin_setup = async (req, res) => {
 //   try {
 //     let referral_options = req.body;
@@ -493,4 +507,5 @@ module.exports = {
   get_referral_data,
   get_referral_tree,
   get_referral_data_uni,
+  get_referral_code,
 };
