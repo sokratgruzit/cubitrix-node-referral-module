@@ -26,5 +26,9 @@ router.post(
   "/get_referra_binary_transactions",
   referral_controller.get_referra_binary_transactions
 );
+router.post(
+  "/get_reerral_global_data",
+  referral_controller.get_reerral_global_data
+);
 
 module.exports = router;

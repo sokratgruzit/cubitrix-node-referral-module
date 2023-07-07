@@ -297,6 +297,7 @@ const get_referra_uni_transactions = async (req, res) => {
     let { address, limit, page } = req.body;
     let transaction = await transactions
       .find({ to: address, tx_type: "bonus", "tx_options.type": "uni" })
+      .sort({ createdAt: -1 })
       .limit(limit)
       .skip((page - 1) * limit);
     let tx_count = await transactions.count({
@@ -316,6 +317,7 @@ const get_referra_binary_transactions = async (req, res) => {
     let { address, limit, page } = req.body;
     let transaction = await transactions
       .find({ to: address, tx_type: "bonus", "tx_options.type": "binary bv" })
+      .sort({ createdAt: -1 })
       .limit(limit)
       .skip((page - 1) * limit);
     let tx_count = await transactions.count({
@@ -324,6 +326,104 @@ const get_referra_binary_transactions = async (req, res) => {
       "tx_options.type": "binary bv",
     });
     return main_helper.success_response(res, { transaction, tx_count });
+  } catch (e) {
+    console.log(e.message);
+    return main_helper.error_response(res, "error");
+  }
+};
+
+const get_reerral_global_data = async (req, res) => {
+  try {
+    let { address, limit, page } = req.body;
+    let uni_users = await referral_uni_users.count({
+      referral_address: address,
+    });
+    let binary_users = await referral_binary_users.count({
+      referral_address: address,
+    });
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    let uni_comission_this_month = await transactions.aggregate([
+      {
+        $match: {
+          to: address,
+          tx_type: "bonus",
+          "tx_options.type": "uni",
+          createdAt: { $gte: startOfMonth },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: "$amount" },
+        },
+      },
+    ]);
+    let uni_comission_total = await transactions.aggregate([
+      {
+        $match: {
+          to: address,
+          tx_type: "bonus",
+          "tx_options.type": "uni",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: "$amount" },
+        },
+      },
+    ]);
+    let binary_comission_this_month = await transactions.aggregate([
+      {
+        $match: {
+          to: address,
+          tx_type: "bonus",
+          "tx_options.type": "binary bv",
+          createdAt: { $gte: startOfMonth },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: "$amount" },
+        },
+      },
+    ]);
+    let binary_comission_total = await transactions.aggregate([
+      {
+        $match: {
+          to: address,
+          tx_type: "bonus",
+          "tx_options.type": "binary bv",
+          createdAt: { $gte: startOfMonth },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: "$amount" },
+        },
+      },
+    ]);
+    // {
+    //   uni_users,
+    //   binary_users,
+    //   referral_code,
+    //   comission this months uni
+    //   comission total uni ,
+    //   comission both binary;
+
+    // }
+    return main_helper.success_response(res, {
+      uni_users,
+      binary_users,
+      uni_comission_this_month,
+      binary_comission_this_month,
+      uni_comission_total,
+      binary_comission_total,
+    });
   } catch (e) {
     console.log(e.message);
     return main_helper.error_response(res, "error");
@@ -548,4 +648,5 @@ module.exports = {
   get_referral_code,
   get_referra_uni_transactions,
   get_referra_binary_transactions,
+  get_reerral_global_data,
 };
