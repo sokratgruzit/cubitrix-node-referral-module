@@ -292,6 +292,25 @@ const get_referral_code = async (req, res) => {
   }
 };
 
+const get_referra_uni_transactions = async (req, res) => {
+  try {
+    let { address, limit, page } = req.body;
+    let transaction = await transactions
+      .find({ to: address, tx_type: "bonus", "tx_options.type": "uni" })
+      .limit(limit)
+      .skip((page - 1) * limit);
+    let tx_count = await transactions.count({
+      to: address,
+      tx_type: "bonus",
+      "tx_options.type": "uni",
+    });
+    return main_helper.success_response(res, { transaction, tx_count });
+  } catch (e) {
+    console.log(e.message);
+    return main_helper.error_response(res, "error");
+  }
+};
+
 // const admin_setup = async (req, res) => {
 //   try {
 //     let referral_options = req.body;
@@ -508,4 +527,5 @@ module.exports = {
   get_referral_tree,
   get_referral_data_uni,
   get_referral_code,
+  get_referra_uni_transactions,
 };
