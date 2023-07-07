@@ -430,6 +430,20 @@ const get_reerral_global_data = async (req, res) => {
   }
 };
 
+const get_referral_address = async (req, res) => {
+  try {
+    let { address } = req.body;
+    let account = await accounts.findOne({
+      account_owner: address,
+      account_category: "main",
+    });
+    return account.address;
+  } catch (e) {
+    console.log(e.message);
+    return main_helper.error_response(res, "error");
+  }
+};
+
 // const admin_setup = async (req, res) => {
 //   try {
 //     let referral_options = req.body;
@@ -649,4 +663,5 @@ module.exports = {
   get_referra_uni_transactions,
   get_referra_binary_transactions,
   get_reerral_global_data,
+  get_referral_address,
 };

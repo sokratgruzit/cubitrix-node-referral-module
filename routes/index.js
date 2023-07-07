@@ -30,5 +30,6 @@ router.post(
   "/get_reerral_global_data",
   referral_controller.get_reerral_global_data
 );
+router.post("/get_referral_address", referral_controller.get_referral_address);
 
 module.exports = router;
