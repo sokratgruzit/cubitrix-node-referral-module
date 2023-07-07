@@ -22,4 +22,9 @@ router.post(
   referral_controller.get_referra_uni_transactions
 );
 
+router.post(
+  "/get_referra_binary_transactions",
+  referral_controller.get_referra_binary_transactions
+);
+
 module.exports = router;
