@@ -470,7 +470,7 @@ const get_referral_address = async (req, res) => {
       account_owner: address,
       account_category: "main",
     });
-    return account.address;
+    return main_helper.success_response(res, account?.address);
   } catch (e) {
     console.log(e.message);
     return main_helper.error_response(res, "error");
