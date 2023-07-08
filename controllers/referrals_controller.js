@@ -136,6 +136,37 @@ const get_referral_data_uni = async (req, res) => {
         },
       },
       {
+        $lookup: {
+          from: "transactions",
+          let: { userAddress: "$user_address" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$from", "$$userAddress"] },
+                    { $eq: ["$tx_type", "bonus"] },
+                  ],
+                },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                totalAmount: { $sum: "$amount" },
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                totalAmount: 1,
+              },
+            },
+          ],
+          as: "joinedTransactions",
+        },
+      },
+      {
         $sort: {
           lvl: 1,
           position: 1,
@@ -150,7 +181,9 @@ const get_referral_data_uni = async (req, res) => {
     ]);
 
     response.list = user_uni;
-    let total_page = await referral_uni_users.count();
+    let total_page = await referral_uni_users.count({
+      referral_address: address,
+    });
     response.total_page = Math.ceil(total_page / limit);
     response.page = page;
     response.limit = limit;
