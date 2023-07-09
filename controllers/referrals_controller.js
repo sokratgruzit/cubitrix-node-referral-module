@@ -39,7 +39,7 @@ const register_referral = async (req, res) => {
       return main_helper.error_response(res, "referral code not provided");
     }
     let account = await accounts.findOne({
-      account_owner: checkAddress[0],
+      address: checkAddress[0],
       account_category: "main",
     });
     if (!account) {
@@ -348,13 +348,23 @@ const get_referral_tree = async (req, res) => {
         let documtnstInner = [];
         for (let k = 0; k < maxpow; k++) {
           let lastlvlitem = _.find(final_result, { lvl: lvlhere - 1 });
+
           if (lastlvlitem) {
             let itemonefind = _.find(lastlvlitem.documents, {
               type: "missing",
               position: Math.ceil((k + 1) / 2),
             });
-            console.log(itemonefind);
-            if (!itemonefind) {
+            let itemonefindnothing = _.find(lastlvlitem.documents, {
+              type: "nothing",
+              position: Math.ceil((k + 1) / 2),
+            });
+            if (itemonefindnothing) {
+              documtnstInner.push({
+                lvl: lvlhere,
+                position: k + 1,
+                type: "nothing",
+              });
+            } else if (!itemonefind) {
               documtnstInner.push({
                 lvl: lvlhere,
                 position: k + 1,
