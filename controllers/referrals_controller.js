@@ -292,7 +292,7 @@ const get_referral_tree = async (req, res) => {
     let missing_positions = [];
     let no_position_child = [];
     let final_result = [];
-    for (let i = 1; i < check_referral_for_users.length; i++) {
+    for (let i = 0; i < check_referral_for_users.length; i++) {
       let one_ref = check_referral_for_users[i];
       let max_pow_on_this_row = Math.pow(2, one_ref._id);
       if (one_ref.documents.length < max_pow_on_this_row) {
@@ -353,6 +353,7 @@ const get_referral_tree = async (req, res) => {
               type: "missing",
               position: Math.ceil((k + 1) / 2),
             });
+            console.log(itemonefind);
             if (!itemonefind) {
               documtnstInner.push({
                 lvl: lvlhere,
