@@ -52,7 +52,7 @@ const register_referral = async (req, res) => {
         side
       );
     }
-    if (!user_already_have_referral_code_uni) {
+    if (!user_already_have_referral_code_uni && auto_place) {
       auto_place_uni = await ref_service.calculate_referral_best_place_uni(
         referral_address,
         user_address,
@@ -114,6 +114,20 @@ const get_referral_data = async (req, res) => {
     response.page = page;
     response.limit = limit;
     return main_helper.success_response(res, response);
+  } catch (e) {
+    console.log(e.message);
+    return main_helper.error_response(res, "error");
+  }
+};
+
+const get_referral_parent_address = async (req, res) => {
+  try {
+    let { address } = req.body;
+    let parent_ref = await referral_binary_users.findOne({
+      user_address: address,
+      lvl: 1,
+    });
+    return main_helper.success_response(res, parent_ref.referral_address);
   } catch (e) {
     console.log(e.message);
     return main_helper.error_response(res, "error");
@@ -261,14 +275,7 @@ const get_referral_tree = async (req, res) => {
         },
       },
     ]);
-    if (check_referral_for_users.length < 1) {
-      return main_helper.success_response(res, {
-        final_result: [
-          { lvl: minLevel, position: 1, type: "missing" },
-          { lvl: minLevel, position: 2, type: "missing" },
-        ],
-      });
-    }
+
     check_referral_for_users.sort((a, b) => {
       return a._id - b._id;
     });
@@ -320,6 +327,43 @@ const get_referral_tree = async (req, res) => {
         lvl: one_ref._id,
         documents: this_row,
       });
+    }
+    if (check_referral_for_users.length < maxLevel) {
+      for (
+        let i = check_referral_for_users.length;
+        i < check_referral_for_users.length + 1;
+        i++
+      ) {
+        let lvlhere = i + 1;
+        let maxpow = Math.pow(2, lvlhere);
+        let documtnstInner = [];
+        for (let k = 0; k < maxpow; k++) {
+          let lastlvlitem = _.find(final_result, { lvl: lvlhere - 1 });
+          if (lastlvlitem) {
+            let itemonefind = _.find(lastlvlitem.documents, {
+              type: "missing",
+              position: Math.ceil((k + 1) / 2),
+            });
+            if (!itemonefind) {
+              documtnstInner.push({
+                lvl: lvlhere,
+                position: k + 1,
+                type: "missing",
+              });
+            }
+          } else {
+            documtnstInner.push({
+              lvl: lvlhere,
+              position: k + 1,
+              type: "missing",
+            });
+          }
+        }
+        final_result.push({
+          lvl: lvlhere,
+          documents: documtnstInner,
+        });
+      }
     }
 
     return main_helper.success_response(res, {
@@ -717,4 +761,5 @@ module.exports = {
   get_referra_binary_transactions,
   get_reerral_global_data,
   get_referral_address,
+  get_referral_parent_address,
 };
