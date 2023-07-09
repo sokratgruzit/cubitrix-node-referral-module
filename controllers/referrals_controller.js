@@ -261,6 +261,14 @@ const get_referral_tree = async (req, res) => {
         },
       },
     ]);
+    if (check_referral_for_users.length < 1) {
+      return main_helper.success_response(res, {
+        final_result: [
+          { lvl: minLevel, position: 1, type: "missing" },
+          { lvl: minLevel, position: 2, type: "missing" },
+        ],
+      });
+    }
     check_referral_for_users.sort((a, b) => {
       return a._id - b._id;
     });
@@ -292,6 +300,7 @@ const get_referral_tree = async (req, res) => {
     for (let i = 0; i < check_referral_for_users.length; i++) {
       let one_ref = check_referral_for_users[i];
       let max_pow_on_this_row = Math.pow(2, one_ref._id);
+      console.log(max_pow_on_this_row);
       let this_row = [];
       for (let k = 1; k <= max_pow_on_this_row; k++) {
         let index = _.findIndex(one_ref.documents, { position: k });
