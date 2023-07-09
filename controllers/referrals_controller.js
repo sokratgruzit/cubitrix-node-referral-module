@@ -24,6 +24,17 @@ const register_referral = async (req, res) => {
     let { referral_address, user_address, side } = req.body;
     referral_address = referral_address.toLowerCase();
     user_address = user_address.toLowerCase();
+    let checkAddress = referral_address.split("_");
+    if (checkAddress.length < 1) {
+      return main_helper.error_response(res, "referral code not provided");
+    }
+    let account = await accounts.findOne({
+      address: checkAddress[0],
+      account_category: "main",
+    });
+    if (!account) {
+      return main_helper.error_response(res, "referral code incorrect");
+    }
     if (referral_address == user_address) {
       return main_helper.error_response(res, "incorrect address");
     }
