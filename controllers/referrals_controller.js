@@ -347,48 +347,56 @@ const get_referral_tree = async (req, res) => {
         let maxpow = Math.pow(2, lvlhere);
         let documtnstInner = [];
         for (let k = 0; k < maxpow; k++) {
-          let lastlvlitem = _.find(final_result, { lvl: lvlhere - 1 });
+          let this_position_check = _.find(final_result, {
+            lvl: lvlhere,
+            position: k + 1,
+          });
+          if (!this_position_check) {
+            let lastlvlitem = _.find(final_result, { lvl: lvlhere - 1 });
 
-          if (lastlvlitem) {
-            let itemonefind = _.find(lastlvlitem.documents, {
-              type: "missing",
-              position: Math.ceil((k + 1) / 2),
-            });
-            let itemonefindnothing = _.find(lastlvlitem.documents, {
-              type: "nothing",
-              position: Math.ceil((k + 1) / 2),
-            });
-            if (itemonefindnothing) {
-              documtnstInner.push({
-                lvl: lvlhere,
-                position: k + 1,
-                type: "nothing",
+            if (lastlvlitem) {
+              let itemonefind = _.find(lastlvlitem.documents, {
+                type: "missing",
+                position: Math.ceil((k + 1) / 2),
               });
-            } else if (!itemonefind) {
+              let itemonefindnothing = _.find(lastlvlitem.documents, {
+                type: "nothing",
+                position: Math.ceil((k + 1) / 2),
+              });
+              if (itemonefindnothing) {
+                documtnstInner.push({
+                  lvl: lvlhere,
+                  position: k + 1,
+                  type: "nothing",
+                });
+              } else if (!itemonefind) {
+                documtnstInner.push({
+                  lvl: lvlhere,
+                  position: k + 1,
+                  type: "missing",
+                });
+              } else {
+                documtnstInner.push({
+                  lvl: lvlhere,
+                  position: k + 1,
+                  type: "nothing",
+                });
+              }
+            } else {
               documtnstInner.push({
                 lvl: lvlhere,
                 position: k + 1,
                 type: "missing",
               });
-            } else {
-              documtnstInner.push({
-                lvl: lvlhere,
-                position: k + 1,
-                type: "nothing",
-              });
             }
-          } else {
-            documtnstInner.push({
-              lvl: lvlhere,
-              position: k + 1,
-              type: "missing",
-            });
           }
         }
-        final_result.push({
-          lvl: lvlhere,
-          documents: documtnstInner,
-        });
+        if (documtnstInner.length > 0) {
+          final_result.push({
+            lvl: lvlhere,
+            documents: documtnstInner,
+          });
+        }
       }
     }
 
