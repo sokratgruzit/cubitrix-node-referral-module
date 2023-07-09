@@ -25,37 +25,47 @@ const register_referral = async (req, res) => {
     referral_address = referral_address.toLowerCase();
     user_address = user_address.toLowerCase();
     let checkAddress = referral_address.split("_");
+    let user_main_addr = await accounts.findOne({
+      account_owner: user_address,
+      account_category: "main",
+    });
+    if (!user_main_addr) {
+      return main_helper.error_response(
+        res,
+        "Sorry , your address isnot recognised"
+      );
+    }
     if (checkAddress.length < 1) {
       return main_helper.error_response(res, "referral code not provided");
     }
     let account = await accounts.findOne({
-      address: checkAddress[0],
+      account_owner: checkAddress[0],
       account_category: "main",
     });
     if (!account) {
       return main_helper.error_response(res, "referral code incorrect");
     }
-    if (referral_address == user_address) {
+    if (referral_address == user_main_addr.address) {
       return main_helper.error_response(res, "incorrect address");
     }
     let user_already_have_referral_code = await referral_binary_users.findOne({
-      user_address: user_address,
+      user_address: user_main_addr.address,
     });
     let user_already_have_referral_code_uni = await referral_uni_users.findOne({
-      user_address: user_address,
+      user_address: user_main_addr.address,
     });
     let auto_place, auto_place_uni;
     if (!user_already_have_referral_code) {
       auto_place = await ref_service.calculate_referral_best_place(
         referral_address,
-        user_address,
+        user_main_addr.address,
         side
       );
     }
     if (!user_already_have_referral_code_uni && auto_place) {
       auto_place_uni = await ref_service.calculate_referral_best_place_uni(
         referral_address,
-        user_address,
+        user_main_addr.address,
         1,
         []
       );
@@ -307,7 +317,6 @@ const get_referral_tree = async (req, res) => {
     for (let i = 0; i < check_referral_for_users.length; i++) {
       let one_ref = check_referral_for_users[i];
       let max_pow_on_this_row = Math.pow(2, one_ref._id);
-      console.log(max_pow_on_this_row);
       let this_row = [];
       for (let k = 1; k <= max_pow_on_this_row; k++) {
         let index = _.findIndex(one_ref.documents, { position: k });

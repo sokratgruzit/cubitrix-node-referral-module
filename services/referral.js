@@ -208,16 +208,16 @@ const check_free_space_for_user = async (
       const parts2 = decryptedText.split("_");
       let check_manual_referral_used = await referral_binary_users.findOne({
         referral_address: referral_address,
-        lvl: parts2[0],
-        position: parts2[1],
+        lvl: parseInt(parts2[0]),
+        position: parseInt(parts2[1]),
       });
       if (check_manual_referral_used) {
         return "code is already used";
       } else {
         return [
           {
-            lvl: parts[1],
-            position: parts[2],
+            lvl: parseInt(parts2[0]),
+            position: parseInt(parts2[1]),
           },
         ];
       }
