@@ -350,6 +350,12 @@ const get_referral_tree = async (req, res) => {
                 position: k + 1,
                 type: "missing",
               });
+            } else {
+              documtnstInner.push({
+                lvl: lvlhere,
+                position: k + 1,
+                type: "nothing",
+              });
             }
           } else {
             documtnstInner.push({
