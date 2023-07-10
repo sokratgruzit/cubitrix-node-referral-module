@@ -835,27 +835,47 @@ const binary_comission_count = async (interval) => {
       });
     }
   }
-  let bv = 5000;
-  let bv_options = [
-    {
-      from: 5000,
-      to: 100000,
-      price: 500,
-      lvl: 1,
-    },
-    {
-      from: 100000,
-      to: 300000,
-      price: 300,
-      lvl: 2,
-    },
-    {
-      from: 300000,
-      to: null,
-      price: 100,
-      lvl: 3,
-    },
-  ];
+  let referral_options = await options.findOne({
+    key: "referral_binary_bv_options",
+  });
+  let bv = referral_options?.object_value?.binaryData?.bv
+    ? referral_options?.object_value?.binaryData?.bv
+    : 5000;
+  bv = parseInt(bv);
+  let bv_options_settings =
+    referral_options?.object_value?.binaryData?.lvlOptions;
+  let bv_options = [];
+  if (bv_options_settings) {
+    for (let i = 0; i < bv_options_settings?.maxCommision.length; i++) {
+      bv_options.push({
+        from: bv_options_settings.maxCommision[i],
+        to: bv_options_settings.maxCommPercentage[i],
+        price: bv_options_settings.bvcPrice[i],
+        lvl: i + 1,
+      });
+    }
+  } else {
+    bv_options = [
+      {
+        from: 5000,
+        to: 100000,
+        price: 500,
+        lvl: 1,
+      },
+      {
+        from: 100000,
+        to: 300000,
+        price: 300,
+        lvl: 2,
+      },
+      {
+        from: 300000,
+        to: null,
+        price: 100,
+        lvl: 3,
+      },
+    ];
+  }
   let all_tx_to_be_done = [];
   for (let k = 0; k < calc_result.length; k++) {
     let one_calc = calc_result[k];
