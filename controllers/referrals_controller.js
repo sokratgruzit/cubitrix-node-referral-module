@@ -732,7 +732,7 @@ const uni_comission_count = async (interval) => {
       }
     }
   }
-  return main_helper.success_response(res, "updated");
+  return "updated";
 };
 
 const binary_comission_count = async (interval) => {
@@ -936,13 +936,7 @@ const binary_comission_count = async (interval) => {
     }
   }
 
-  return main_helper.success_response(res, {
-    write_tx,
-    all_tx_to_be_done,
-    referral_addresses,
-    filteredStakes,
-    calc_result,
-  });
+  return "updated";
 };
 // const admin_setup = async (req, res) => {
 //   try {
