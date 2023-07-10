@@ -68,9 +68,23 @@ async function get_referral_by_code(referral) {
     return main_helper.error_message(e.message);
   }
 }
+
+function make_hash(length = 66) {
+  let result = "";
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const charactersLength = characters.length;
+  let counter = 0;
+  while (counter < length) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    counter += 1;
+  }
+  return result;
+}
 module.exports = {
   get_option_by_key,
   set_object_option_by_key,
   get_account_by_address,
   get_referral_by_code,
+  make_hash,
 };

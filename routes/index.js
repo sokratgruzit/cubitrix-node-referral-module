@@ -35,5 +35,6 @@ router.post(
   "/get_referral_parent_address",
   referral_controller.get_referral_parent_address
 );
+router.post("/get_referral_options", referral_controller.get_referral_options);
 
 module.exports = router;

@@ -5,12 +5,14 @@ const {
   accounts,
   transactions,
   options,
+  stakes,
 } = require("@cubitrix/models");
 const main_helper = require("../helpers/index");
 const global_helper = require("../helpers/global_helper");
 const shortid = require("shortid");
 const ref_service = require("../services/referral");
 const _ = require("lodash");
+const moment = require("moment");
 
 // auto generate referral place
 // auto generate referrral place by side(left right)
@@ -580,7 +582,368 @@ const get_referral_address = async (req, res) => {
     return main_helper.error_response(res, "error");
   }
 };
+const get_referral_options = async (req, res) => {
+  try {
+    let { name } = req.body;
+    let key;
+    if (name == "Uni") {
+      key = "referral_uni_options";
+    } else if (name == "Binary bv") {
+      key = "referral_binary_bv_options";
+    } else {
+      return main_helper.error_response(res, "error");
+    }
+    let settings = await options.findOne({
+      key,
+    });
+    return main_helper.success_response(res, settings);
+  } catch (e) {
+    console.log(e.message);
+    return main_helper.error_response(res, "error");
+  }
+};
 
+const cron_test = async () => {
+  try {
+    console.log("cron works");
+    return true;
+  } catch (e) {
+    console.log(e.message);
+    return false;
+  }
+};
+
+const uni_comission_count = async (interval) => {
+  let comissions = {
+    lvl1: 5,
+    lvl2: 2,
+    lvl3: 1,
+    lvl4: 1,
+    lvl5: 1,
+    lvl6: 1,
+    lvl7: 1,
+    lvl8: 1,
+    lvl9: 1,
+    lvl10: 1,
+  };
+
+  let interval_ago = moment()
+    .subtract(interval, "days")
+    .startOf("day")
+    .valueOf();
+  interval_ago = interval_ago / 1000;
+  const filteredStakes = await stakes.aggregate([
+    {
+      $match: {
+        staketime: { $gte: interval_ago },
+      },
+    },
+    {
+      $lookup: {
+        from: "accounts",
+        localField: "address",
+        foreignField: "account_owner",
+        as: "joinedAccounts",
+      },
+    },
+    {
+      $unwind: "$joinedAccounts",
+    },
+    {
+      $group: {
+        _id: "$joinedAccounts.address",
+        totalAmount: { $sum: "$amount" },
+      },
+    },
+  ]);
+  let addresses_that_staked_this_interval = [];
+  for (let i = 0; i < filteredStakes.length; i++) {
+    addresses_that_staked_this_interval.push(filteredStakes[i]._id);
+  }
+  let comissions_of_addresses = [];
+
+  let referral_addresses = await referral_uni_users.find({
+    user_address: { $in: addresses_that_staked_this_interval },
+  });
+  for (let i = 0; i < filteredStakes.length; i++) {
+    for (let k = 0; k < referral_addresses.length; k++) {
+      if (referral_addresses[k].user_address == filteredStakes[i]._id) {
+        comissions_of_addresses.push({
+          address: referral_addresses[k].user_address,
+          referral_address: referral_addresses[k].referral_address,
+          amount_today: filteredStakes[i].totalAmount,
+          lvl: referral_addresses[k].lvl,
+          percent: comissions["lvl" + referral_addresses[k].lvl],
+          amount_today_reward:
+            (filteredStakes[i].totalAmount *
+              comissions["lvl" + referral_addresses[k].lvl]) /
+            100,
+        });
+      }
+    }
+  }
+
+  let write_tx = [];
+
+  for (let i = 0; i < comissions_of_addresses.length; i++) {
+    let tx_hash_generated = global_helper.make_hash();
+
+    let tx_hash = ("0x" + tx_hash_generated).toLowerCase();
+    let from = comissions_of_addresses[i];
+    write_tx.push({
+      from: from.address,
+      to: from.referral_address,
+      amount: from.amount_today_reward,
+      tx_hash,
+      tx_type: "bonus",
+      tx_currency: "ether",
+      tx_status: "approved",
+      tx_options: {
+        method: "referral",
+        type: "uni",
+        lvl: from.lvl,
+        percent: from.percent,
+      },
+    });
+  }
+  const result = {};
+
+  for (let i = 0; i < write_tx.length; i++) {
+    const item = write_tx[i];
+    const key = item.to;
+    const value = 0 + item.amount;
+
+    if (result.hasOwnProperty(key)) {
+      result[key] += value;
+    } else {
+      result[key] = value;
+    }
+  }
+  if (result && write_tx) {
+    const transaction = await transactions.insertMany(write_tx);
+    if (transaction) {
+      const keyValueArray = Object.entries(result);
+      for (let i = 0; i < keyValueArray.length; i++) {
+        const [key, value] = keyValueArray[i];
+        let accounts_change = await accounts.findOneAndUpdate(
+          { address: key },
+          { $inc: { balance: value } }
+        );
+      }
+    }
+  }
+  return main_helper.success_response(res, "updated");
+};
+
+const binary_comission_count = async (interval) => {
+  let interval_ago = moment()
+    .subtract(interval, "days")
+    .startOf("day")
+    .valueOf();
+  interval_ago = interval_ago / 1000;
+  const filteredStakes = await stakes.aggregate([
+    {
+      $match: {
+        staketime: { $gte: interval_ago },
+      },
+    },
+    {
+      $lookup: {
+        from: "accounts",
+        localField: "address",
+        foreignField: "account_owner",
+        as: "joinedAccounts",
+      },
+    },
+    {
+      $unwind: "$joinedAccounts",
+    },
+    {
+      $group: {
+        _id: "$joinedAccounts.address",
+        totalAmount: { $sum: "$amount" },
+      },
+    },
+  ]);
+  let addresses_that_staked_this_interval = [];
+  for (let i = 0; i < filteredStakes.length; i++) {
+    addresses_that_staked_this_interval.push(filteredStakes[i]._id);
+  }
+
+  let referral_user_addresses = await referral_binary_users.find({
+    user_address: { $in: addresses_that_staked_this_interval },
+  });
+  let addresses_that_staked_this_interval_parent = [];
+
+  for (let i = 0; i < referral_user_addresses.length; i++) {
+    addresses_that_staked_this_interval_parent.push(
+      referral_user_addresses[i].referral_address
+    );
+  }
+
+  let referral_addresses = await referral_binary_users.aggregate([
+    {
+      $match: {
+        referral_address: { $in: addresses_that_staked_this_interval_parent },
+      },
+    },
+    {
+      $group: {
+        _id: "$referral_address",
+        documents: { $push: "$$ROOT" },
+      },
+    },
+    {
+      $sort: {
+        "_id.referral_address": 1,
+      },
+    },
+  ]);
+
+  let calc_result = [];
+  for (let i = 0; i < referral_addresses.length; i++) {
+    let document = referral_addresses[i].documents;
+    let amount_sum_left = 0;
+    let amount_sum_right = 0;
+    for (let k = 0; k < document.length; k++) {
+      let one_doc = document[k];
+      let this_addr_stake = _.find(filteredStakes, {
+        _id: one_doc.user_address,
+      });
+      if (this_addr_stake) {
+        if (one_doc.side == "left") {
+          amount_sum_left += this_addr_stake.totalAmount;
+        } else {
+          amount_sum_right += this_addr_stake.totalAmount;
+        }
+      }
+    }
+    let side, amount;
+    if (amount_sum_left > amount_sum_right) {
+      side = "right";
+      amount = amount_sum_right;
+    } else {
+      side = "left";
+      amount = amount_sum_left;
+    }
+
+    if (amount != 0) {
+      calc_result.push({
+        address: referral_addresses[i]._id,
+        side,
+        amount,
+      });
+    }
+  }
+  let bv = 5000;
+  let bv_options = [
+    {
+      from: 5000,
+      to: 100000,
+      price: 500,
+      lvl: 1,
+    },
+    {
+      from: 100000,
+      to: 300000,
+      price: 300,
+      lvl: 2,
+    },
+    {
+      from: 300000,
+      to: null,
+      price: 100,
+      lvl: 3,
+    },
+  ];
+  let all_tx_to_be_done = [];
+  for (let k = 0; k < calc_result.length; k++) {
+    let one_calc = calc_result[k];
+    let user_amount_added_by_lvl = [];
+    let amount = one_calc.amount;
+    if (amount == bv) {
+      amount += 1;
+    }
+    let user_whole_amount = 0;
+    for (let i = 0; i < bv_options.length; i++) {
+      let oneBv = bv_options[i];
+
+      if (amount > oneBv.from) {
+        let amount_multip_prepare = amount - oneBv.from;
+        if (oneBv.lvl == 1) {
+          amount_multip_prepare = amount;
+        }
+        if (oneBv.to && amount > oneBv.to) {
+          amount_multip_prepare = oneBv.to;
+        }
+
+        let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
+        let to_Add_amount = amunt_to_multiply * oneBv.price;
+        user_amount_added_by_lvl.push({
+          lvl: oneBv.lvl,
+          amount: to_Add_amount,
+          side: one_calc.side,
+          amunt_to_multiply,
+          price: oneBv.price,
+          address: one_calc.address,
+          one_calc_amount: one_calc.amount,
+          amount_multip_prepare,
+        });
+        user_whole_amount += to_Add_amount;
+      }
+    }
+    if (user_amount_added_by_lvl.length > 0) {
+      all_tx_to_be_done.push({
+        address: one_calc.address,
+        amount: user_whole_amount,
+        docs: user_amount_added_by_lvl,
+      });
+    }
+  }
+  let write_tx = [];
+  for (let i = 0; i < all_tx_to_be_done.length; i++) {
+    let tx_hash_generated = global_helper.make_hash();
+
+    let tx_hash = ("0x" + tx_hash_generated).toLowerCase();
+
+    let Txs = all_tx_to_be_done[i].docs;
+    for (let k = 0; k < Txs.length; k++) {
+      let oneTx = Txs[k];
+      write_tx.push({
+        from: oneTx.side,
+        to: oneTx.address,
+        amount: oneTx.amount,
+        tx_hash,
+        tx_type: "bonus",
+        tx_currency: "ether",
+        tx_status: "approved",
+        tx_options: {
+          method: "referral",
+          type: "binary bv",
+          lvl: oneTx.lvl,
+        },
+      });
+    }
+  }
+  let transaction = await transactions.insertMany(write_tx);
+  if (transaction) {
+    for (let i = 0; i < all_tx_to_be_done.length; i++) {
+      let one_tx = all_tx_to_be_done[i];
+      let account_update = await accounts.findOneAndUpdate(
+        { address: one_tx.address },
+        { $inc: { balance: one_tx.amount } }
+      );
+    }
+  }
+
+  return main_helper.success_response(res, {
+    write_tx,
+    all_tx_to_be_done,
+    referral_addresses,
+    filteredStakes,
+    calc_result,
+  });
+};
 // const admin_setup = async (req, res) => {
 //   try {
 //     let referral_options = req.body;
@@ -595,203 +958,9 @@ const get_referral_address = async (req, res) => {
 //   }
 // };
 
-// async function get_referral_code_of_user_dashboard(req, res) {
-//   try {
-//     let { address } = req.body;
-//     address = address.toLowerCase();
-//     let system_address_referral_txs = await accounts.findOne({
-//       $or: [{ account_owner: address }, { address }],
-//       account_category: "system",
-//     });
-
-//     let referral_types = [
-//       "referral_bonus_binary_level_1",
-//       "referral_bonus_binary_level_2",
-//       "referral_bonus_binary_level_3",
-//       "referral_bonus_binary_level_4",
-//       "referral_bonus_binary_level_5",
-//       "referral_bonus_binary_level_6",
-//       "referral_bonus_binary_level_7",
-//       "referral_bonus_binary_level_8",
-//       "referral_bonus_binary_level_9",
-//       "referral_bonus_binary_level_10",
-//       "referral_bonus_binary_level_11",
-//     ];
-
-//     let referral_sum_binary = await transactions.aggregate([
-//       {
-//         $match: {
-//           to: system_address_referral_txs?.address,
-//           tx_type: {
-//             $in: referral_types,
-//           },
-//         },
-//       },
-//       {
-//         $group: {
-//           _id: {
-//             referrral: "$tx_options.referral",
-//             referral_module: "$tx_options.referral_module",
-//           },
-//           amount: { $sum: "$amount" },
-//         },
-//       },
-//       {
-//         $sort: { createdAt: -1 },
-//       },
-//     ]);
-//     let referral_sum_uni = await transactions.aggregate([
-//       {
-//         $match: {
-//           to: system_address_referral_txs?.address,
-//           tx_type: "referral_bonus_uni_level",
-//         },
-//       },
-//       {
-//         $group: {
-//           _id: {
-//             referrral: "$tx_options.referral",
-//             referral_module: "$tx_options.referral_module",
-//           },
-//           amount: { $sum: "$amount" },
-//         },
-//       },
-//       {
-//         $sort: { createdAt: -1 },
-//       },
-//     ]);
-
-//     address = address.toLowerCase();
-
-//     let referral_codes_count = await get_referral_by_address(address);
-
-//     let referral_uni_code, referral_binary_code;
-
-//     for (let i = 0; i < referral_codes_count.length; i++) {
-//       if (referral_codes_count[i].referral_type == "uni") {
-//         referral_uni_code = referral_codes_count[i].referral;
-//       } else {
-//         referral_binary_code = referral_codes_count[i].referral;
-//       }
-//     }
-
-//     let referral_count_binary = await referral_binary_users.count({
-//       referral: referral_binary_code,
-//     });
-
-//     let referral_count_uni = await referral_uni_users.count({
-//       referral: referral_uni_code,
-//     });
-
-//     return main_helper.success_response(res, {
-//       referral_sum_binary,
-//       referral_sum_uni,
-//       referral_count_binary,
-//       referral_count_uni,
-//     });
-//   } catch (e) {
-//     return main_helper.error_response(res, e.message);
-//   }
-// }
-// async function get_referral_rebates_history_of_user(req, res) {
-//   try {
-//     let { address, limit, page } = req.body;
-//     if (address) address = address.toLowerCase();
-//     let system_address_referral_txs = await accounts.findOne({
-//       $or: [{ account_owner: address }, { address }],
-//       account_category: "system",
-//     });
-
-//     let referral_types = [
-//       "referral_bonus_uni_level",
-//       "referral_bonus_binary_level_1",
-//       "referral_bonus_binary_level_2",
-//       "referral_bonus_binary_level_3",
-//       "referral_bonus_binary_level_4",
-//       "referral_bonus_binary_level_5",
-//       "referral_bonus_binary_level_6",
-//       "referral_bonus_binary_level_7",
-//       "referral_bonus_binary_level_8",
-//       "referral_bonus_binary_level_9",
-//       "referral_bonus_binary_level_10",
-//       "referral_bonus_binary_level_11",
-//     ];
-//     let referral_rebates_history = await transactions.aggregate([
-//       {
-//         $match: {
-//           to: system_address_referral_txs?.address,
-//           tx_type: {
-//             $in: referral_types,
-//           },
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "account_metas",
-//           localField: "from",
-//           foreignField: "address",
-//           as: "from",
-//         },
-//       },
-//       {
-//         $unwind: "$from",
-//       },
-//       {
-//         $skip: limit * (page - 1),
-//       },
-//       {
-//         $limit: limit,
-//       },
-//       {
-//         $sort: { createdAt: -1 },
-//       },
-//     ]);
-//     let total_records = await transactions.aggregate([
-//       {
-//         $match: {
-//           to: system_address_referral_txs?.address,
-//           tx_type: {
-//             $in: referral_types,
-//           },
-//         },
-//       },
-//       {
-//         $count: "tx_hash",
-//       },
-//     ]);
-//     let total_pages = 0;
-//     if (total_records.length > 0) {
-//       total_pages = total_records[0].tx_hash;
-//     }
-//     return main_helper.success_response(res, {
-//       referral_rebates_history,
-//       total_pages,
-//     });
-//   } catch (e) {
-//     return main_helper.error_response(res, e.message);
-//   }
-// }
-
-// const get_referral_options = async (req, res) => {
-//   try {
-//     let get_referral_options = await global_helper.get_option_by_key(
-//       "referral_options"
-//     );
-//     if (get_referral_options.success) {
-//       return main_helper.success_response(
-//         res,
-//         get_referral_options?.data?.object_value
-//       );
-//     } else {
-//       return main_helper.success_response(res, {});
-//     }
-//   } catch (e) {
-//     console.log(e.message);
-//     main_helper.error_response(res, "error");
-//   }
-// };
-
 module.exports = {
+  uni_comission_count,
+  binary_comission_count,
   register_referral,
   get_referral_data,
   get_referral_tree,
@@ -802,4 +971,6 @@ module.exports = {
   get_reerral_global_data,
   get_referral_address,
   get_referral_parent_address,
+  get_referral_options,
+  cron_test,
 };
