@@ -4,6 +4,7 @@ const {
   referral_links,
   accounts,
   transactions,
+  options,
 } = require("@cubitrix/models");
 const main_helper = require("../helpers/index");
 const global_helper = require("../helpers/global_helper");
@@ -22,6 +23,11 @@ const _ = require("lodash");
 const register_referral = async (req, res) => {
   try {
     let { referral_address, user_address, side } = req.body;
+    // let binary_data_settings = await options.findOne({
+    //   key: "referral_binary_bv_options",
+    // });
+    // console.log(binary_data_settings?.object_value?.binaryData);
+    // return main_helper.error_response(res, binary_data_settings);
     referral_address = referral_address.toLowerCase();
     user_address = user_address.toLowerCase();
     let checkAddress = referral_address.split("_");
@@ -45,7 +51,7 @@ const register_referral = async (req, res) => {
     if (!account) {
       return main_helper.error_response(res, "referral code incorrect");
     }
-    if (referral_address == user_main_addr.address) {
+    if (checkAddress[0] == user_main_addr.address) {
       return main_helper.error_response(res, "incorrect address");
     }
     let user_already_have_referral_code = await referral_binary_users.findOne({
@@ -64,7 +70,7 @@ const register_referral = async (req, res) => {
     }
     if (!user_already_have_referral_code_uni && auto_place) {
       auto_place_uni = await ref_service.calculate_referral_best_place_uni(
-        referral_address,
+        checkAddress[0],
         user_main_addr.address,
         1,
         []

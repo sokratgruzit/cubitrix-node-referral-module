@@ -5,6 +5,7 @@ const {
   accounts,
   transactions,
   stakes,
+  options,
 } = require("@cubitrix/models");
 const main_helper = require("../helpers/index");
 const global_helper = require("../helpers/global_helper");
@@ -19,6 +20,9 @@ const calculate_referral_best_place = async (
 ) => {
   try {
     // now 11 later will take from admin
+    // let binary_data_settings = await options.findOne({ key: "Binary Bv" });
+    // console.log(binary_data_settings);
+    // return binary_data_settings;
     let recursion;
     let binary_max_lvl = 11;
     let free_spaces = await check_free_space_for_user(
