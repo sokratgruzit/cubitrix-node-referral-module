@@ -617,22 +617,12 @@ const uni_comission_count = async (interval) => {
   let referral_options = await options.findOne({
     key: "referral_uni_options",
   });
-  // console.log(JSON.stringify(referral_options));
-  // return false;
-  // let bv = referral_options?.object_value?.binaryData?.lvlOptions;
+  let bv = referral_options?.object_value?.binaryData?.lvlOptions;
   // if()
-  let comissions = {
-    lvl1: 5,
-    lvl2: 2,
-    lvl3: 1,
-    lvl4: 1,
-    lvl5: 1,
-    lvl6: 1,
-    lvl7: 1,
-    lvl8: 1,
-    lvl9: 1,
-    lvl10: 1,
-  };
+  let comissions =
+    referral_options?.object_value?.uniData?.lvlOptions?.maxCommPercentage;
+  let maxCommision =
+    referral_options?.object_value?.uniData?.lvlOptions?.maxCommision;
 
   let interval_ago = moment()
     .subtract(interval, "days")
@@ -675,16 +665,22 @@ const uni_comission_count = async (interval) => {
   for (let i = 0; i < filteredStakes.length; i++) {
     for (let k = 0; k < referral_addresses.length; k++) {
       if (referral_addresses[k].user_address == filteredStakes[i]._id) {
+        let amount_today_award =
+          (filteredStakes[i].totalAmount *
+            parseFloat(comissions[referral_addresses[k].lvl - 1])) /
+          100;
+        let maxCommissionLvl = maxCommision[referral_addresses[k].lvl - 1];
+        maxCommissionLvl = parseFloat(maxCommissionLvl);
         comissions_of_addresses.push({
           address: referral_addresses[k].user_address,
           referral_address: referral_addresses[k].referral_address,
           amount_today: filteredStakes[i].totalAmount,
           lvl: referral_addresses[k].lvl,
-          percent: comissions["lvl" + referral_addresses[k].lvl],
+          percent: comissions[referral_addresses[k].lvl - 1],
           amount_today_reward:
-            (filteredStakes[i].totalAmount *
-              comissions["lvl" + referral_addresses[k].lvl]) /
-            100,
+            maxCommissionLvl > amount_today_award
+              ? maxCommissionLvl
+              : amount_today_award,
         });
       }
     }
@@ -700,7 +696,7 @@ const uni_comission_count = async (interval) => {
     write_tx.push({
       from: from.address,
       to: from.referral_address,
-      amount: from.amount_today_reward,
+      amount: parseFloat(from.amount_today_reward),
       tx_hash,
       tx_type: "bonus",
       tx_currency: "ether",
