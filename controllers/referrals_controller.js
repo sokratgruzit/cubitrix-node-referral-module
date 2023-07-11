@@ -444,7 +444,8 @@ const get_referra_uni_transactions = async (req, res) => {
       tx_type: "bonus",
       "tx_options.type": "uni",
     });
-    return main_helper.success_response(res, { transaction, tx_count });
+    let total_page = Math.ceil(tx_count / limit);
+    return main_helper.success_response(res, { transaction, total_page });
   } catch (e) {
     console.log(e.message);
     return main_helper.error_response(res, "error");
@@ -464,7 +465,8 @@ const get_referra_binary_transactions = async (req, res) => {
       tx_type: "bonus",
       "tx_options.type": "binary bv",
     });
-    return main_helper.success_response(res, { transaction, tx_count });
+    let total_page = Math.ceil(tx_count / limit);
+    return main_helper.success_response(res, { transaction, total_page });
   } catch (e) {
     console.log(e.message);
     return main_helper.error_response(res, "error");
