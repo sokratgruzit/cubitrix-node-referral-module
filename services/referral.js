@@ -30,7 +30,7 @@ const calculate_referral_best_place = async (
     let binary_max_lvl = referral_options?.object_value?.binaryData?.maxUsers
       ? referral_options?.object_value?.binaryData?.maxUsers
       : 11;
-
+    binary_max_lvl = parseInt(binary_max_lvl);
     let free_spaces = await check_free_space_for_user(
       referral_address,
       side,
@@ -103,7 +103,14 @@ const calculate_referral_best_place_uni = async (
     user_address,
     lvl,
   });
-  if (assign_ref_to_user && lvl <= 10) {
+  let referral_options = await options.findOne({
+    key: "referral_uni_options",
+  });
+  let uni_max_level = referral_options?.object_value?.uniData?.level
+    ? referral_options?.object_value?.uniData?.level
+    : 10;
+  uni_max_level = parseInt(uni_max_level);
+  if (assign_ref_to_user && lvl <= uni_max_level) {
     final_data.push(assign_ref_to_user);
     let user_parent_ref = await referral_uni_users.findOne({
       user_address: referral_address,
@@ -136,6 +143,7 @@ const binary_recursion = async (
   let max_level_binary = referral_options?.object_value?.binaryData?.maxUsers
     ? referral_options?.object_value?.binaryData?.maxUsers
     : 11;
+  max_level_binary = parseInt(max_level_binary);
   let already_exists = await referral_binary_users.findOne({
     user_address: user_address,
     referral_address: referral_address_modified,
