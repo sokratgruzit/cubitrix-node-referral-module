@@ -614,6 +614,13 @@ const cron_test = async () => {
 };
 
 const uni_comission_count = async (interval) => {
+  let referral_options = await options.findOne({
+    key: "referral_uni_options",
+  });
+  // console.log(JSON.stringify(referral_options));
+  // return false;
+  // let bv = referral_options?.object_value?.binaryData?.lvlOptions;
+  // if()
   let comissions = {
     lvl1: 5,
     lvl2: 2,
@@ -736,227 +743,256 @@ const uni_comission_count = async (interval) => {
 };
 
 const binary_comission_count = async (interval) => {
-  let interval_ago = moment()
-    .subtract(interval, "days")
-    .startOf("day")
-    .valueOf();
-  interval_ago = interval_ago / 1000;
-  const filteredStakes = await stakes.aggregate([
-    {
-      $match: {
-        staketime: { $gte: interval_ago },
-      },
-    },
-    {
-      $lookup: {
-        from: "accounts",
-        localField: "address",
-        foreignField: "account_owner",
-        as: "joinedAccounts",
-      },
-    },
-    {
-      $unwind: "$joinedAccounts",
-    },
-    {
-      $group: {
-        _id: "$joinedAccounts.address",
-        totalAmount: { $sum: "$amount" },
-      },
-    },
-  ]);
-  let addresses_that_staked_this_interval = [];
-  for (let i = 0; i < filteredStakes.length; i++) {
-    addresses_that_staked_this_interval.push(filteredStakes[i]._id);
-  }
+  try {
+    let interval_ago = moment()
+      .subtract(interval, "days")
+      .startOf("day")
+      .valueOf();
+    interval_ago = interval_ago / 1000;
+    let referral_options = await options.findOne({
+      key: "referral_binary_bv_options",
+    });
 
-  let referral_user_addresses = await referral_binary_users.find({
-    user_address: { $in: addresses_that_staked_this_interval },
-  });
-  let addresses_that_staked_this_interval_parent = [];
-
-  for (let i = 0; i < referral_user_addresses.length; i++) {
-    addresses_that_staked_this_interval_parent.push(
-      referral_user_addresses[i].referral_address
-    );
-  }
-
-  let referral_addresses = await referral_binary_users.aggregate([
-    {
-      $match: {
-        referral_address: { $in: addresses_that_staked_this_interval_parent },
-      },
-    },
-    {
-      $group: {
-        _id: "$referral_address",
-        documents: { $push: "$$ROOT" },
-      },
-    },
-    {
-      $sort: {
-        "_id.referral_address": 1,
-      },
-    },
-  ]);
-
-  let calc_result = [];
-  for (let i = 0; i < referral_addresses.length; i++) {
-    let document = referral_addresses[i].documents;
-    let amount_sum_left = 0;
-    let amount_sum_right = 0;
-    for (let k = 0; k < document.length; k++) {
-      let one_doc = document[k];
-      let this_addr_stake = _.find(filteredStakes, {
-        _id: one_doc.user_address,
-      });
-      if (this_addr_stake) {
-        if (one_doc.side == "left") {
-          amount_sum_left += this_addr_stake.totalAmount;
-        } else {
-          amount_sum_right += this_addr_stake.totalAmount;
-        }
-      }
-    }
-    let side, amount;
-    if (amount_sum_left > amount_sum_right) {
-      side = "right";
-      amount = amount_sum_right;
-    } else {
-      side = "left";
-      amount = amount_sum_left;
-    }
-
-    if (amount != 0) {
-      calc_result.push({
-        address: referral_addresses[i]._id,
-        side,
-        amount,
-      });
-    }
-  }
-  let referral_options = await options.findOne({
-    key: "referral_binary_bv_options",
-  });
-  let bv = referral_options?.object_value?.binaryData?.bv
-    ? referral_options?.object_value?.binaryData?.bv
-    : 5000;
-  bv = parseInt(bv);
-  let bv_options_settings =
-    referral_options?.object_value?.binaryData?.lvlOptions;
-  let bv_options = [];
-  if (bv_options_settings) {
-    for (let i = 0; i < bv_options_settings?.maxCommision.length; i++) {
-      bv_options.push({
-        from: bv_options_settings.maxCommision[i],
-        to: bv_options_settings.maxCommPercentage[i],
-        price: bv_options_settings.bvcPrice[i],
-        lvl: i + 1,
-      });
-    }
-  } else {
-    bv_options = [
+    let bv = referral_options?.object_value?.binaryData?.bv
+      ? referral_options?.object_value?.binaryData?.bv
+      : 5000;
+    bv = parseInt(bv);
+    let bv_options_flushed_out = referral_options?.object_value?.binaryData
+      ?.flushed_out
+      ? parseInt(referral_options?.object_value?.binaryData?.flushed_out)
+      : 3;
+    let bv_options = referral_options?.object_value?.binaryData?.options;
+    const filteredStakes = await stakes.aggregate([
       {
-        from: 5000,
-        to: 100000,
-        price: 500,
-        lvl: 1,
-      },
-      {
-        from: 100000,
-        to: 300000,
-        price: 300,
-        lvl: 2,
-      },
-      {
-        from: 300000,
-        to: null,
-        price: 100,
-        lvl: 3,
-      },
-    ];
-  }
-  let all_tx_to_be_done = [];
-  for (let k = 0; k < calc_result.length; k++) {
-    let one_calc = calc_result[k];
-    let user_amount_added_by_lvl = [];
-    let amount = one_calc.amount;
-    if (amount == bv) {
-      amount += 1;
-    }
-    let user_whole_amount = 0;
-    for (let i = 0; i < bv_options.length; i++) {
-      let oneBv = bv_options[i];
-
-      if (amount > oneBv.from) {
-        let amount_multip_prepare = amount - oneBv.from;
-        if (oneBv.lvl == 1) {
-          amount_multip_prepare = amount;
-        }
-        if (oneBv.to && amount > oneBv.to) {
-          amount_multip_prepare = oneBv.to;
-        }
-
-        let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
-        let to_Add_amount = amunt_to_multiply * oneBv.price;
-        user_amount_added_by_lvl.push({
-          lvl: oneBv.lvl,
-          amount: to_Add_amount,
-          side: one_calc.side,
-          amunt_to_multiply,
-          price: oneBv.price,
-          address: one_calc.address,
-          one_calc_amount: one_calc.amount,
-          amount_multip_prepare,
-        });
-        user_whole_amount += to_Add_amount;
-      }
-    }
-    if (user_amount_added_by_lvl.length > 0) {
-      all_tx_to_be_done.push({
-        address: one_calc.address,
-        amount: user_whole_amount,
-        docs: user_amount_added_by_lvl,
-      });
-    }
-  }
-  let write_tx = [];
-  for (let i = 0; i < all_tx_to_be_done.length; i++) {
-    let tx_hash_generated = global_helper.make_hash();
-
-    let tx_hash = ("0x" + tx_hash_generated).toLowerCase();
-
-    let Txs = all_tx_to_be_done[i].docs;
-    for (let k = 0; k < Txs.length; k++) {
-      let oneTx = Txs[k];
-      write_tx.push({
-        from: oneTx.side,
-        to: oneTx.address,
-        amount: oneTx.amount,
-        tx_hash,
-        tx_type: "bonus",
-        tx_currency: "ether",
-        tx_status: "approved",
-        tx_options: {
-          method: "referral",
-          type: "binary bv",
-          lvl: oneTx.lvl,
+        $match: {
+          staketime: { $gte: interval_ago },
         },
-      });
+      },
+      {
+        $lookup: {
+          from: "accounts",
+          localField: "address",
+          foreignField: "account_owner",
+          as: "joinedAccounts",
+        },
+      },
+      {
+        $unwind: "$joinedAccounts",
+      },
+      {
+        $group: {
+          _id: "$joinedAccounts.address",
+          totalAmount: { $sum: "$amount" },
+        },
+      },
+    ]);
+    let addresses_that_staked_this_interval = [];
+    for (let i = 0; i < filteredStakes.length; i++) {
+      addresses_that_staked_this_interval.push(filteredStakes[i]._id);
     }
-  }
-  let transaction = await transactions.insertMany(write_tx);
-  if (transaction) {
-    for (let i = 0; i < all_tx_to_be_done.length; i++) {
-      let one_tx = all_tx_to_be_done[i];
-      let account_update = await accounts.findOneAndUpdate(
-        { address: one_tx.address },
-        { $inc: { balance: one_tx.amount } }
+
+    let referral_user_addresses = await referral_binary_users.find({
+      user_address: { $in: addresses_that_staked_this_interval },
+    });
+    let addresses_that_staked_this_interval_parent = [];
+
+    for (let i = 0; i < referral_user_addresses.length; i++) {
+      addresses_that_staked_this_interval_parent.push(
+        referral_user_addresses[i].referral_address
       );
     }
-  }
 
-  return "updated";
+    let referral_addresses = await referral_binary_users.aggregate([
+      {
+        $match: {
+          referral_address: { $in: addresses_that_staked_this_interval_parent },
+        },
+      },
+      {
+        $group: {
+          _id: "$referral_address",
+          documents: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $sort: {
+          "_id.referral_address": 1,
+        },
+      },
+    ]);
+
+    let calc_result = [];
+    for (let i = 0; i < referral_addresses.length; i++) {
+      let document = referral_addresses[i].documents;
+      let amount_sum_left = 0;
+      let amount_sum_right = 0;
+      for (let k = 0; k < document.length; k++) {
+        let one_doc = document[k];
+        let this_addr_stake = _.find(filteredStakes, {
+          _id: one_doc.user_address,
+        });
+        if (this_addr_stake) {
+          if (one_doc.side == "left") {
+            amount_sum_left += this_addr_stake.totalAmount;
+          } else {
+            amount_sum_right += this_addr_stake.totalAmount;
+          }
+        }
+      }
+      let side, amount;
+      let account_check = await accounts.findOne({
+        address: referral_addresses[i]._id,
+      });
+      const currentDate = new Date();
+      const monthsPassed =
+        (currentDate.getFullYear() - account_check.createdAt.getFullYear()) *
+          12 +
+        (currentDate.getMonth() - account_check.createdAt.getMonth());
+
+      let flush_out;
+      if (
+        (account_check?.flush_out &&
+          account_check?.flush_out?.active &&
+          monthsPassed < bv_options_flushed_out) ||
+        (account_check?.flush_out &&
+          Object.keys(account_check?.flush_out).length === 0) ||
+        account_check?.flush_out == null
+      ) {
+        let flush_number = account_check?.flush_out?.number
+          ? account_check?.flush_out?.number
+          : 0;
+        flush_number = parseInt(flush_number);
+
+        let flush_active = flush_number < 2 ? true : false;
+        let flush_left_amount =
+          amount_sum_left > amount_sum_right
+            ? amount_sum_right
+            : amount_sum_left;
+        let flush_left = account_check?.flush_out?.left
+          ? account_check?.flush_out?.left
+          : 0;
+        flush_left = parseInt(flush_left);
+        let flush_right = account_check?.flush_out?.right
+          ? account_check?.flush_out?.right
+          : 0;
+        flush_right = parseInt(flush_right);
+        flush_out = {
+          active: flush_active,
+          number: flush_number + 1,
+          left: flush_left + (amount_sum_left - flush_left_amount),
+          right: flush_right + (amount_sum_right - flush_left_amount),
+        };
+        await accounts.findOneAndUpdate(
+          { address: referral_addresses[i]._id },
+          {
+            flush_out,
+          }
+        );
+        amount_sum_left += flush_left;
+        amount_sum_right += flush_right;
+      }
+      if (amount_sum_left > amount_sum_right) {
+        side = "right";
+        amount = amount_sum_right;
+      } else {
+        side = "left";
+        amount = amount_sum_left;
+      }
+
+      if (amount != 0) {
+        calc_result.push({
+          address: referral_addresses[i]._id,
+          side,
+          amount,
+        });
+      }
+    }
+
+    let all_tx_to_be_done = [];
+    for (let k = 0; k < calc_result.length; k++) {
+      let one_calc = calc_result[k];
+      let user_amount_added_by_lvl = [];
+      let amount = one_calc.amount;
+      if (amount == bv) {
+        amount += 1;
+      }
+      let user_whole_amount = 0;
+      for (let i = 0; i < bv_options.length; i++) {
+        let oneBv = bv_options[i];
+
+        if (amount > oneBv.from) {
+          let amount_multip_prepare = amount - oneBv.from;
+          if (i + 1 == 1) {
+            amount_multip_prepare = amount;
+          }
+          if (oneBv.to && amount > oneBv.to) {
+            amount_multip_prepare = oneBv.to;
+          }
+
+          let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
+          let to_Add_amount = amunt_to_multiply * oneBv.price;
+          user_amount_added_by_lvl.push({
+            lvl: i + 1,
+            amount: to_Add_amount,
+            side: one_calc.side,
+            amunt_to_multiply,
+            price: oneBv.price,
+            address: one_calc.address,
+            one_calc_amount: one_calc.amount,
+            amount_multip_prepare,
+          });
+          user_whole_amount += to_Add_amount;
+        }
+      }
+      if (user_amount_added_by_lvl.length > 0) {
+        all_tx_to_be_done.push({
+          address: one_calc.address,
+          amount: user_whole_amount,
+          docs: user_amount_added_by_lvl,
+        });
+      }
+    }
+    let write_tx = [];
+    for (let i = 0; i < all_tx_to_be_done.length; i++) {
+      let tx_hash_generated = global_helper.make_hash();
+
+      let tx_hash = ("0x" + tx_hash_generated).toLowerCase();
+
+      let Txs = all_tx_to_be_done[i].docs;
+      for (let k = 0; k < Txs.length; k++) {
+        let oneTx = Txs[k];
+        write_tx.push({
+          from: oneTx.side,
+          to: oneTx.address,
+          amount: oneTx.amount,
+          tx_hash,
+          tx_type: "bonus",
+          tx_currency: "ether",
+          tx_status: "approved",
+          tx_options: {
+            method: "referral",
+            type: "binary bv",
+            lvl: oneTx.lvl,
+          },
+        });
+      }
+    }
+    let transaction = await transactions.insertMany(write_tx);
+    if (transaction) {
+      for (let i = 0; i < all_tx_to_be_done.length; i++) {
+        let one_tx = all_tx_to_be_done[i];
+        let account_update = await accounts.findOneAndUpdate(
+          { address: one_tx.address },
+          { $inc: { balance: one_tx.amount } }
+        );
+      }
+    }
+
+    return "updated";
+  } catch (e) {
+    console.log(e.message);
+    return false;
+  }
 };
 // const admin_setup = async (req, res) => {
 //   try {
