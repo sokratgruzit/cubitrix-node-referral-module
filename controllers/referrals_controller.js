@@ -679,8 +679,8 @@ const uni_comission_count = async (interval) => {
           percent: comissions[referral_addresses[k].lvl - 1],
           amount_today_reward:
             maxCommissionLvl > amount_today_award
-              ? maxCommissionLvl
-              : amount_today_award,
+              ? amount_today_award
+              : maxCommissionLvl,
         });
       }
     }
