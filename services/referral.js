@@ -193,9 +193,9 @@ const binary_recursion = async (
 
 const secretKey = "YourSecretKey";
 
-function encrypt(address, lvl, position) {
+function encrypt(address, lvl, position, main_address) {
   const cipher = crypto.createCipher("aes-256-cbc", secretKey);
-  let plaintext = lvl + "_" + position;
+  let plaintext = lvl + "_" + position + "_" + main_address;
   let encrypted = cipher.update(plaintext, "utf8", "hex");
   encrypted += cipher.final("hex");
   return address + "_" + encrypted;
@@ -337,4 +337,5 @@ module.exports = {
   calculate_referral_best_place,
   calculate_referral_best_place_uni,
   encrypt,
+  decrypt,
 };

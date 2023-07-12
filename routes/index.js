@@ -18,13 +18,13 @@ router.post(
 
 router.post("/get_referral_code", referral_controller.get_referral_code);
 router.post(
-  "/get_referra_uni_transactions",
-  referral_controller.get_referra_uni_transactions
+  "/get_referral_uni_transactions",
+  referral_controller.get_referral_uni_transactions
 );
 
 router.post(
-  "/get_referra_binary_transactions",
-  referral_controller.get_referra_binary_transactions
+  "/get_referral_binary_transactions",
+  referral_controller.get_referral_binary_transactions
 );
 router.post(
   "/get_reerral_global_data",

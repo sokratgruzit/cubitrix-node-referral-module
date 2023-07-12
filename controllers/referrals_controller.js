@@ -25,11 +25,6 @@ const moment = require("moment");
 const register_referral = async (req, res) => {
   try {
     let { referral_address, user_address, side } = req.body;
-    // let binary_data_settings = await options.findOne({
-    //   key: "referral_binary_bv_options",
-    // });
-    // console.log(binary_data_settings?.object_value?.binaryData);
-    // return main_helper.error_response(res, binary_data_settings);
     referral_address = referral_address.toLowerCase();
     user_address = user_address.toLowerCase();
     let checkAddress = referral_address.split("_");
@@ -56,6 +51,7 @@ const register_referral = async (req, res) => {
     if (checkAddress[0] == user_main_addr.address) {
       return main_helper.error_response(res, "incorrect address");
     }
+
     let user_already_have_referral_code = await referral_binary_users.findOne({
       user_address: user_main_addr.address,
     });
@@ -71,12 +67,23 @@ const register_referral = async (req, res) => {
       );
     }
     if (!user_already_have_referral_code_uni && auto_place) {
-      auto_place_uni = await ref_service.calculate_referral_best_place_uni(
-        checkAddress[0],
-        user_main_addr.address,
-        1,
-        []
-      );
+      if (checkAddress.length > 1) {
+        let decrypted = ref_service.decrypt(checkAddress[1]);
+        let address = decrypted.split("_");
+        auto_place_uni = await ref_service.calculate_referral_best_place_uni(
+          address[2],
+          user_main_addr.address,
+          1,
+          []
+        );
+      } else {
+        auto_place_uni = await ref_service.calculate_referral_best_place_uni(
+          checkAddress[0],
+          user_main_addr.address,
+          1,
+          []
+        );
+      }
     }
 
     return main_helper.success_response(res, { auto_place, auto_place_uni });
@@ -419,11 +426,11 @@ const get_referral_tree = async (req, res) => {
 
 const get_referral_code = async (req, res) => {
   try {
-    let { address, lvl, position } = req.body;
-    if (!address && !lvl && !position) {
+    let { address, lvl, position, main_address } = req.body;
+    if (!address && !lvl && !position && !main_address) {
       return main_helper.error_message(res, "please provide all position");
     }
-    let encrypted = ref_service.encrypt(address, lvl, position);
+    let encrypted = ref_service.encrypt(address, lvl, position, main_address);
     return main_helper.success_response(res, encrypted);
   } catch (e) {
     console.log(e.message);
@@ -431,7 +438,7 @@ const get_referral_code = async (req, res) => {
   }
 };
 
-const get_referra_uni_transactions = async (req, res) => {
+const get_referral_uni_transactions = async (req, res) => {
   try {
     let { address, limit, page } = req.body;
     let transaction = await transactions
@@ -452,7 +459,7 @@ const get_referra_uni_transactions = async (req, res) => {
   }
 };
 
-const get_referra_binary_transactions = async (req, res) => {
+const get_referral_binary_transactions = async (req, res) => {
   try {
     let { address, limit, page } = req.body;
     let transaction = await transactions
@@ -1014,8 +1021,8 @@ module.exports = {
   get_referral_tree,
   get_referral_data_uni,
   get_referral_code,
-  get_referra_uni_transactions,
-  get_referra_binary_transactions,
+  get_referral_uni_transactions,
+  get_referral_binary_transactions,
   get_reerral_global_data,
   get_referral_address,
   get_referral_parent_address,
