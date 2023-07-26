@@ -132,6 +132,12 @@ const get_referral_data = async (req, res) => {
         $skip: (page - 1) * limit,
       },
     ]);
+    for(let i=0; i<user_binary.length; i++){
+      if(user_binary[i]?.joinedAccountMetas[0]?.name){
+        user_binary[i].joinedAccountMetas[0].name = hideName(user_binary[i]?.joinedAccountMetas[0]?.name);
+        user_binary[i].joinedAccountMetas[0].email = hideName(user_binary[i]?.joinedAccountMetas[0]?.email);
+      }
+    }
 
     response.list = user_binary;
     let total_page = await referral_binary_users.count();
@@ -229,7 +235,12 @@ const get_referral_data_uni = async (req, res) => {
         $skip: (page - 1) * limit,
       },
     ]);
-
+    for(let i=0; i<user_uni.length; i++){
+      if(user_uni[i]?.joinedAccountMetas[0]?.name){
+        user_uni[i].joinedAccountMetas[0].name = hideName(user_uni[i]?.joinedAccountMetas[0]?.name);
+        user_uni[i].joinedAccountMetas[0].email = hideName(user_uni[i]?.joinedAccountMetas[0]?.email);
+      }
+    }
     response.list = user_uni;
     let total_page = await referral_uni_users.count({
       referral_address: address,
@@ -304,6 +315,15 @@ const get_referral_tree = async (req, res) => {
     check_referral_for_users.sort((a, b) => {
       return a._id - b._id;
     });
+    for(let i=0; i<check_referral_for_users.length; i++){
+      let documents  = check_referral_for_users[i]?.documents;
+      for(let k=0; k<documents.length; k++){
+        if(documents[k]?.joinedAccountMetas[0]?.name){
+          check_referral_for_users[i].documents[k].joinedAccountMetas[0].name = hideName(documents[k]?.joinedAccountMetas[0]?.name);
+          check_referral_for_users[i].documents[k].joinedAccountMetas[0].email = hideName(documents[k]?.joinedAccountMetas[0]?.email);
+        }
+      }
+    }
     let missing_positions = [];
     let no_position_child = [];
     let final_result = [];
@@ -414,7 +434,6 @@ const get_referral_tree = async (req, res) => {
         }
       }
     }
-
     return main_helper.success_response(res, {
       final_result,
     });
@@ -1012,6 +1031,18 @@ const binary_comission_count = async (interval) => {
 //     return main_helper.error_response(res, "error");
 //   }
 // };
+
+function hideName(name) {
+  if (name.length <= 2) {
+    return name;
+  }
+
+  const firstLetter = name.charAt(0);
+  const lastLetter = name.charAt(name.length - 1);
+  const middleAsterisks = '*'.repeat(name.length - 2);
+
+  return firstLetter + middleAsterisks + lastLetter;
+}
 
 module.exports = {
   uni_comission_count,
