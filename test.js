@@ -8,11 +8,7 @@ const app = express();
 const cors = require("cors");
 
 const cors_options = {
-  origin: [
-    "http://localhost:4000",
-    "http://localhost:3000",
-    "http://localhost:6006",
-  ],
+  origin: ["http://localhost:4000", "http://localhost:3000", "http://localhost:6006"],
   optionsSuccessStatus: 200,
   credentials: true,
 };
@@ -43,7 +39,7 @@ async function start() {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    // let binary = await referral_controller.binary_comission_count(30);
+    let binary = await referral_controller.binary_comission_count(30);
     let uni = await referral_controller.uni_comission_count(20);
     // if (binary) {
     //   console.log(123);
@@ -51,9 +47,7 @@ async function start() {
     if (uni) {
       console.log(121231);
     }
-    app.listen(PORT, () =>
-      console.log(`App has been started on port ${PORT}...`)
-    );
+    app.listen(PORT, () => console.log(`App has been started on port ${PORT}...`));
   } catch (e) {
     console.log(`Server Error ${e.message}`);
     process.exit(1);
