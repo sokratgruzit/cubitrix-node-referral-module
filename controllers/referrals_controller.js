@@ -792,7 +792,7 @@ const binary_comission_count = async (interval) => {
       .valueOf();
     interval_ago = interval_ago / 1000;
 
-    let todayStartOfDay = moment().startOf("day").valueOf() / 1000;
+    // let todayStartOfDay = moment().startOf("day").valueOf() / 1000;
 
     let referral_options = await options.findOne({
       key: "referral_binary_bv_options",
@@ -810,7 +810,8 @@ const binary_comission_count = async (interval) => {
     const filteredStakes = await stakes.aggregate([
       {
         $match: {
-          staketime: { $gte: interval_ago, $lt: todayStartOfDay },
+          // staketime: { $gte: interval_ago, $lt: todayStartOfDay },
+          staketime: { $gte: interval_ago },
         },
       },
       {
