@@ -203,6 +203,7 @@ const get_referral_data_uni = async (req, res) => {
                   $and: [
                     { $eq: ["$from", "$$userAddress"] },
                     { $eq: ["$tx_type", "bonus"] },
+                    { $eq: ["$to", address] },
                   ],
                 },
               },

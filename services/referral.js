@@ -16,7 +16,7 @@ const crypto = require("crypto");
 const calculate_referral_best_place = async (
   referral_address,
   user_address,
-  side = "auto"
+  side = "auto",
 ) => {
   try {
     // now 11 later will take from admin
@@ -34,8 +34,9 @@ const calculate_referral_best_place = async (
     let free_spaces = await check_free_space_for_user(
       referral_address,
       side,
-      binary_max_lvl
+      binary_max_lvl,
     );
+
     let returndata;
     if (free_spaces && Array.isArray(free_spaces) && free_spaces.length > 0) {
       let free_space = free_spaces[0];
@@ -58,7 +59,7 @@ const calculate_referral_best_place = async (
         returndata.position,
         returndata.position,
         [],
-        returndata.referral_address
+        returndata.referral_address,
       );
 
       return recursion;
@@ -73,6 +74,7 @@ const calculate_referral_best_place = async (
         lvl: returndata.lvl - 1,
         position: parent_position,
       });
+
       //   return;
       recursion = await binary_recursion(
         returndata.user_address,
@@ -81,7 +83,7 @@ const calculate_referral_best_place = async (
         position,
         returndata.position,
         [],
-        find_parent.user_address
+        find_parent.user_address,
       );
     }
 
@@ -96,7 +98,7 @@ const calculate_referral_best_place_uni = async (
   referral_address,
   user_address,
   lvl,
-  final_data
+  final_data,
 ) => {
   let assign_ref_to_user = await referral_uni_users.create({
     referral_address,
@@ -121,7 +123,7 @@ const calculate_referral_best_place_uni = async (
         user_parent_ref.referral_address,
         user_address,
         lvl + 1,
-        final_data
+        final_data,
       );
     }
   }
@@ -135,7 +137,7 @@ const binary_recursion = async (
   position,
   last_position,
   final_data = [],
-  referral_address
+  referral_address,
 ) => {
   let referral_options = await options.findOne({
     key: "referral_binary_bv_options",
@@ -184,7 +186,7 @@ const binary_recursion = async (
         real_position,
         last_position,
         final_data,
-        referral_address
+        referral_address,
       );
     }
   }
@@ -213,11 +215,7 @@ function hashSecretKey(secretKey) {
   return hash.update(secretKey).digest("hex");
 }
 
-const check_free_space_for_user = async (
-  referral_code,
-  side,
-  binary_max_lvl
-) => {
+const check_free_space_for_user = async (referral_code, side, binary_max_lvl) => {
   try {
     const parts = referral_code.split("_");
     if (parts.length < 1) {
@@ -229,6 +227,7 @@ const check_free_space_for_user = async (
       const hashedSecretKey = hashSecretKey(secretKey);
       const decryptedText = decrypt(parts[1], hashedSecretKey);
       const parts2 = decryptedText.split("_");
+      console.log(parts2);
       let check_manual_referral_used = await referral_binary_users.findOne({
         referral_address: referral_address,
         lvl: parseInt(parts2[0]),
