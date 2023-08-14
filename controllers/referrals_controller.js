@@ -1040,6 +1040,200 @@ const binary_comission_count = async (interval) => {
     return false;
   }
 };
+const binary_comission_count_user = async (interval, referral_address) => {
+  try {
+    let interval_ago = moment()
+      .subtract(interval, "days")
+      .startOf("day")
+      .valueOf();
+    interval_ago = interval_ago / 1000;
+    let referral_options = await options.findOne({
+      key: "referral_binary_bv_options",
+    });
+
+    let bv = referral_options?.object_value?.binaryData?.bv
+      ? referral_options?.object_value?.binaryData?.bv
+      : 5000;
+    bv = parseInt(bv);
+    let bv_options_flushed_out = referral_options?.object_value?.binaryData
+      ?.flushed_out
+      ? parseInt(referral_options?.object_value?.binaryData?.flushed_out)
+      : 3;
+    let bv_options = referral_options?.object_value?.binaryData?.options;
+    const filteredStakes = await stakes.aggregate([
+      {
+        $match: {
+          staketime: { $gte: interval_ago },
+        },
+      },
+      {
+        $lookup: {
+          from: "accounts",
+          localField: "address",
+          foreignField: "account_owner",
+          as: "joinedAccounts",
+        },
+      },
+      {
+        $unwind: "$joinedAccounts",
+      },
+      {
+        $group: {
+          _id: "$joinedAccounts.address",
+          totalAmount: { $sum: "$amount" },
+        },
+      },
+    ]);
+    let addresses_that_staked_this_interval = [];
+    for (let i = 0; i < filteredStakes.length; i++) {
+      addresses_that_staked_this_interval.push(filteredStakes[i]._id);
+    }
+    let referral_addresses = await referral_binary_users.aggregate([
+      {
+        $match: {
+          referral_address: referral_address,
+        },
+      },
+      {
+        $group: {
+          _id: "$referral_address",
+          documents: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $sort: {
+          "_id.referral_address": 1,
+        },
+      },
+    ]);
+
+    let calc_result = [];
+    for (let i = 0; i < referral_addresses.length; i++) {
+      let document = referral_addresses[i].documents;
+      let amount_sum_left = 0;
+      let amount_sum_right = 0;
+      for (let k = 0; k < document.length; k++) {
+        let one_doc = document[k];
+        let this_addr_stake = _.find(filteredStakes, {
+          _id: one_doc.user_address,
+        });
+        if (this_addr_stake) {
+          if (one_doc.side == "left") {
+            amount_sum_left += this_addr_stake.totalAmount;
+          } else {
+            amount_sum_right += this_addr_stake.totalAmount;
+          }
+        }
+      }
+      let side, amount;
+      let account_check = await accounts.findOne({
+        address: referral_addresses[i]._id,
+      });
+      const currentDate = new Date();
+      const monthsPassed =
+        (currentDate.getFullYear() - account_check.createdAt.getFullYear()) *
+          12 +
+        (currentDate.getMonth() - account_check.createdAt.getMonth());
+
+      let flush_out;
+      if (
+        (account_check?.flush_out &&
+          account_check?.flush_out?.active &&
+          monthsPassed < bv_options_flushed_out) ||
+        (account_check?.flush_out &&
+          Object.keys(account_check?.flush_out).length === 0) ||
+        account_check?.flush_out == null
+      ) {
+        let flush_number = account_check?.flush_out?.number
+          ? account_check?.flush_out?.number
+          : 0;
+        flush_number = parseInt(flush_number);
+
+        let flush_active = flush_number < 2 ? true : false;
+        let flush_left_amount =
+          amount_sum_left > amount_sum_right
+            ? amount_sum_right
+            : amount_sum_left;
+        let flush_left = account_check?.flush_out?.left
+          ? account_check?.flush_out?.left
+          : 0;
+        flush_left = parseInt(flush_left);
+        let flush_right = account_check?.flush_out?.right
+          ? account_check?.flush_out?.right
+          : 0;
+        flush_right = parseInt(flush_right);
+        flush_out = {
+          active: flush_active,
+          number: flush_number + 1,
+          left: flush_left + (amount_sum_left - flush_left_amount),
+          right: flush_right + (amount_sum_right - flush_left_amount),
+        };
+        await accounts.findOneAndUpdate(
+          { address: referral_addresses[i]._id },
+          {
+            flush_out,
+          }
+        );
+        amount_sum_left += flush_left;
+        amount_sum_right += flush_right;
+      }
+      if (amount_sum_left > amount_sum_right) {
+        side = "right";
+        amount = amount_sum_right;
+      } else {
+        side = "left";
+        amount = amount_sum_left;
+      }
+
+      if (amount != 0) {
+        calc_result.push({
+          address: referral_addresses[i]._id,
+          side,
+          amount,
+          amount_sum_left,
+          amount_sum_right,
+        });
+      }
+    }
+
+    let all_amount_sum = 0;
+    let left_total = 0;
+    let total_right = 0;
+    for (let k = 0; k < calc_result.length; k++) {
+      let one_calc = calc_result[k];
+      let amount = one_calc.amount;
+      if (amount == bv) {
+        amount += 1;
+      }
+      left_total = one_calc.amount_sum_left;
+      total_right = one_calc.amount_sum_right;
+      for (let i = 0; i < bv_options.length; i++) {
+        let oneBv = bv_options[i];
+        if (amount > oneBv.from) {
+          let amount_multip_prepare = amount - oneBv.from;
+          if (i + 1 == 1) {
+            amount_multip_prepare = amount;
+          }
+          if (oneBv.to && amount > oneBv.to) {
+            amount_multip_prepare = oneBv.to;
+          }
+
+          let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
+          let to_Add_amount = amunt_to_multiply * oneBv.price;
+          all_amount_sum += to_Add_amount;
+        }
+      }
+    }
+    return {
+      all_amount_sum,
+      left_total,
+      total_right,
+    };
+  } catch (e) {
+    console.log(e.message);
+    return false;
+  }
+};
 // const admin_setup = async (req, res) => {
 //   try {
 //     let referral_options = req.body;
@@ -1081,4 +1275,5 @@ module.exports = {
   get_referral_parent_address,
   get_referral_options,
   cron_test,
+  binary_comission_count_user,
 };

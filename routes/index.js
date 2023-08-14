@@ -36,5 +36,17 @@ router.post(
   referral_controller.get_referral_parent_address
 );
 router.post("/get_referral_options", referral_controller.get_referral_options);
+router.post("/binary_comission_count_user", async (req, res) => {
+  let { address } = req.body;
+  const currentDate = new Date();
+  const currentDayOfMonth = currentDate.getDate();
+  const daysPassed = currentDayOfMonth - 1;
+  console.log(daysPassed);
+  let results = await referral_controller.binary_comission_count_user(
+    daysPassed,
+    address
+  );
+  res.status(200).json({ results });
+});
 
 module.exports = router;
