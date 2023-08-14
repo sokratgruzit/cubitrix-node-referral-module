@@ -43,14 +43,14 @@ async function start() {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    // let binary = await referral_controller.binary_comission_count(30);
-    let uni = await referral_controller.uni_comission_count(20);
-    // if (binary) {
-    //   console.log(123);
-    // }
-    if (uni) {
-      console.log(121231);
+    let binary = await referral_controller.binary_comission_count(30);
+    // let uni = await referral_controller.uni_comission_count(20);
+    if (binary) {
+      console.log(123);
     }
+    // if (uni) {
+    //   console.log(121231);
+    // }
     app.listen(PORT, () =>
       console.log(`App has been started on port ${PORT}...`)
     );
