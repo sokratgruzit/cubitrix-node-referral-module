@@ -66,7 +66,11 @@ const register_referral = async (req, res) => {
         side
       );
     }
-    if (!user_already_have_referral_code_uni && auto_place) {
+    if (
+      !user_already_have_referral_code_uni &&
+      auto_place &&
+      auto_place != "code is already used"
+    ) {
       if (checkAddress.length > 1) {
         let decrypted = ref_service.decrypt(checkAddress[1]);
         let address = decrypted.split("_");
