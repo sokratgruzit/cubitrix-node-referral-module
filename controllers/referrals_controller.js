@@ -277,6 +277,12 @@ const get_referral_tree = async (req, res) => {
     let lvl = 1;
     let minLevel = lvl;
     let maxLevel = lvl + 3;
+    let referral_options = await options.findOne({
+      key: "referral_binary_bv_options",
+    });
+    let binary_max_lvl = referral_options?.object_value?.binaryData?.maxUsers
+      ? referral_options?.object_value?.binaryData?.maxUsers
+      : 11;
 
     if (!second_address) {
       second_address = address;
@@ -287,7 +293,7 @@ const get_referral_tree = async (req, res) => {
         referral_address: address,
         user_address: second_address,
       });
-      let max_level_for_new_tree = 8 - checkAddress.lvl;
+      let max_level_for_new_tree = binary_max_lvl - checkAddress.lvl;
       if (max_level_for_new_tree < maxLevel) {
         maxLevel = max_level_for_new_tree;
       }
@@ -659,7 +665,7 @@ const cron_test = async () => {
   }
 };
 
-const uni_comission_count = async (interval) => {
+const uni_comission_count = async (interval, address = null) => {
   let referral_options = await options.findOne({
     key: "referral_uni_options",
   });
@@ -706,9 +712,14 @@ const uni_comission_count = async (interval) => {
   // console.log(filteredStakes);
 
   let addresses_that_staked_this_interval = [];
-  for (let i = 0; i < filteredStakes.length; i++) {
-    addresses_that_staked_this_interval.push(filteredStakes[i]._id);
+  if (address) {
+    addresses_that_staked_this_interval = [address];
+  } else {
+    for (let i = 0; i < filteredStakes.length; i++) {
+      addresses_that_staked_this_interval.push(filteredStakes[i]._id);
+    }
   }
+
   let comissions_of_addresses = [];
 
   let referral_addresses = await referral_uni_users.find({
@@ -791,7 +802,7 @@ const uni_comission_count = async (interval) => {
   return write_tx;
 };
 
-const binary_comission_count = async (interval) => {
+const binary_comission_count = async (interval, address = null) => {
   try {
     let interval_ago = moment()
       .subtract(interval, "days")
@@ -848,11 +859,14 @@ const binary_comission_count = async (interval) => {
       user_address: { $in: addresses_that_staked_this_interval },
     });
     let addresses_that_staked_this_interval_parent = [];
-
-    for (let i = 0; i < referral_user_addresses.length; i++) {
-      addresses_that_staked_this_interval_parent.push(
-        referral_user_addresses[i].referral_address
-      );
+    if (address) {
+      addresses_that_staked_this_interval_parent = [address];
+    } else {
+      for (let i = 0; i < referral_user_addresses.length; i++) {
+        addresses_that_staked_this_interval_parent.push(
+          referral_user_addresses[i].referral_address
+        );
+      }
     }
 
     let referral_addresses = await referral_binary_users.aggregate([
