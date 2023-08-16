@@ -283,6 +283,7 @@ const get_referral_tree = async (req, res) => {
     let binary_max_lvl = referral_options?.object_value?.binaryData?.maxUsers
       ? referral_options?.object_value?.binaryData?.maxUsers
       : 11;
+    let binary_max_depth = null;
 
     if (!second_address) {
       second_address = address;
@@ -294,6 +295,7 @@ const get_referral_tree = async (req, res) => {
         user_address: second_address,
       });
       let max_level_for_new_tree = binary_max_lvl - checkAddress.lvl;
+      binary_max_depth = checkAddress.lvl;
       if (max_level_for_new_tree < maxLevel) {
         maxLevel = max_level_for_new_tree;
       }
@@ -429,11 +431,22 @@ const get_referral_tree = async (req, res) => {
                   type: "nothing",
                 });
               } else if (!itemonefind) {
-                documtnstInner.push({
-                  lvl: lvlhere,
-                  position: k + 1,
-                  type: "missing",
-                });
+                if (
+                  binary_max_depth &&
+                  binary_max_depth + lvlhere == binary_max_lvl
+                ) {
+                  documtnstInner.push({
+                    lvl: lvlhere,
+                    position: k + 1,
+                    type: "nothing",
+                  });
+                } else {
+                  documtnstInner.push({
+                    lvl: lvlhere,
+                    position: k + 1,
+                    type: "missing",
+                  });
+                }
               } else {
                 documtnstInner.push({
                   lvl: lvlhere,
