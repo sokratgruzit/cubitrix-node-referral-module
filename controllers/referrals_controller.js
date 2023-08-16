@@ -48,7 +48,10 @@ const register_referral = async (req, res) => {
     if (!account) {
       return main_helper.error_response(res, "referral code incorrect");
     }
-    if (checkAddress[0] == user_main_addr.address) {
+    if (
+      checkAddress[0] == user_main_addr.address ||
+      account?.tier?.value == "Novice Navigator"
+    ) {
       return main_helper.error_response(res, "incorrect address");
     }
 
