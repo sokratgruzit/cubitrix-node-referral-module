@@ -99,6 +99,91 @@ const register_referral = async (req, res) => {
     return main_helper.error_response(res, "error");
   }
 };
+const check_referral_available = async (req, res) => {
+  try {
+    let { referral_address, user_address } = req.body;
+    referral_address = referral_address.toLowerCase();
+    user_address = user_address.toLowerCase();
+    let checkAddress = referral_address.split("_");
+    let user_main_addr = await accounts.findOne({
+      account_owner: user_address,
+      account_category: "main",
+    });
+    if (!user_main_addr) {
+      return main_helper.error_response(
+        res,
+        "Sorry , your address isnot recognised"
+      );
+    }
+    if (checkAddress.length < 1) {
+      return main_helper.error_response(res, "referral code not provided");
+    }
+    let account = await accounts.findOne({
+      address: checkAddress[0],
+      account_category: "main",
+    });
+    if (!account) {
+      return main_helper.error_response(res, "referral code incorrect");
+    }
+    if (
+      checkAddress[0] == user_main_addr.address ||
+      account?.tier?.value == "Novice Navigator"
+    ) {
+      return main_helper.error_response(res, "incorrect address");
+    }
+    if (checkAddress.length > 1) {
+      let decr = await ref_service.decrypt(checkAddress[1]);
+      console.log(decr, "decr");
+      let split_dec = decr.split("_");
+      if (split_dec.size < 3) {
+        return main_helper.error_response(res, {
+          message: "incorrect code",
+          statusCode: 0,
+        });
+      }
+      if (isNaN(split_dec[1]) || isNaN(split_dec[2])) {
+        return main_helper.error_response(res, {
+          message: "incorrect code",
+          statusCode: 0,
+        });
+      }
+      let checkreferralbyplace = await referral_binary_users.findOne({
+        referral_address: split_dec[2],
+        lvl: split_dec[0],
+        position: split_dec[1],
+      });
+      if (checkreferralbyplace) {
+        return main_helper.error_response(res, {
+          message: "no space",
+          statusCode: 0,
+          checkreferralbyplace,
+        });
+      }
+    } else {
+      let referral_options = await options.findOne({
+        key: "referral_binary_bv_options",
+      });
+      let binary_max_lvl = referral_options?.object_value?.binaryData?.maxUsers
+        ? referral_options?.object_value?.binaryData?.maxUsers
+        : 11;
+      let checkallspaces = await referral_binary_users.count({
+        referral_address: checkAddress[0],
+        lvl: binary_max_lvl,
+      });
+      if (checkAddress == Math.pow(2, binary_max_lvl)) {
+        return main_helper.error_response(res, {
+          message: "no space",
+          statusCode: 0,
+        });
+      }
+    }
+
+    return main_helper.success_response(res, { statusCode: 1, message: "ok" });
+  } catch (e) {
+    console.log(e.message);
+    return main_helper.error_response(res, "error");
+  }
+};
 
 const get_referral_data = async (req, res) => {
   try {
@@ -1310,4 +1395,5 @@ module.exports = {
   get_referral_options,
   cron_test,
   binary_comission_count_user,
+  check_referral_available,
 };
