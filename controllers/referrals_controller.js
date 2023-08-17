@@ -125,12 +125,14 @@ const check_referral_available = async (req, res) => {
     ) {
       return main_helper.error_response(res, "incorrect address");
     }
-    if (checkAddress.length > 1 && checkAddress !== 96) {
-      return main_helper.error_response(res, {
-        message: "incorrect code length",
-        statusCode: 0,
-      });
-    } else if (checkAddress.length > 1) {
+
+    if (checkAddress.length > 1) {
+      if (checkAddress?.[1]?.length !== 96) {
+        return main_helper.error_response(res, {
+          message: "incorrect code length",
+          statusCode: 0,
+        });
+      }
       let decr = await ref_service.decrypt(checkAddress[1]);
       console.log(decr, "decr");
       let split_dec = decr.split("_");
