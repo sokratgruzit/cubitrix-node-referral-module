@@ -1261,6 +1261,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
       {
         $match: {
           staketime: { $gte: interval_ago },
+          bv_placed: false,
         },
       },
       {
@@ -1431,6 +1432,86 @@ const binary_comission_count_user = async (interval, referral_address) => {
     return false;
   }
 };
+
+const uni_comission_count_user = async (interval, referral_address) => {
+  try {
+    let referral_options = await options.findOne({
+      key: "referral_uni_options",
+    });
+    let bv = referral_options?.object_value?.binaryData?.lvlOptions;
+    // if()
+    let comissions =
+      referral_options?.object_value?.uniData?.lvlOptions?.maxCommPercentage;
+    let maxCommision =
+      referral_options?.object_value?.uniData?.lvlOptions?.maxCommision;
+
+    let interval_ago = moment()
+      .subtract(interval, "days")
+      .startOf("day")
+      .valueOf();
+    let amount = 0;
+
+    interval_ago = interval_ago / 1000;
+    const filteredStakes = await stakes.aggregate([
+      {
+        $match: {
+          staketime: { $gte: interval_ago },
+          uni_placed: false,
+        },
+      },
+      {
+        $lookup: {
+          from: "accounts",
+          localField: "address",
+          foreignField: "account_owner",
+          as: "joinedAccounts",
+        },
+      },
+      {
+        $unwind: "$joinedAccounts",
+      },
+      {
+        $group: {
+          _id: "$joinedAccounts.address",
+          totalAmount: { $sum: "$amount" },
+        },
+      },
+    ]);
+    let addresses_that_staked_this_interval = [];
+
+    for (let i = 0; i < filteredStakes.length; i++) {
+      addresses_that_staked_this_interval.push(filteredStakes[i]._id);
+    }
+
+    let comissions_of_addresses = [];
+    let stakeIds = [];
+    let referral_addresses = await referral_uni_users.find({
+      user_address: { $in: addresses_that_staked_this_interval },
+      referral_address: referral_address,
+    });
+    for (let i = 0; i < filteredStakes.length; i++) {
+      for (let k = 0; k < referral_addresses.length; k++) {
+        if (referral_addresses[k].user_address == filteredStakes[i]._id) {
+          let amount_today_award =
+            (filteredStakes[i].totalAmount *
+              parseFloat(comissions[referral_addresses[k].lvl - 1])) /
+            100;
+          let maxCommissionLvl = maxCommision[referral_addresses[k].lvl - 1];
+          maxCommissionLvl = parseFloat(maxCommissionLvl);
+          amount += parseFloat(
+            maxCommissionLvl > amount_today_award
+              ? amount_today_award
+              : maxCommissionLvl
+          );
+        }
+      }
+    }
+    return amount;
+  } catch (e) {
+    console.log(e.message);
+    return false;
+  }
+};
 // const admin_setup = async (req, res) => {
 //   try {
 //     let referral_options = req.body;
@@ -1473,5 +1554,6 @@ module.exports = {
   get_referral_options,
   cron_test,
   binary_comission_count_user,
+  uni_comission_count_user,
   check_referral_available,
 };

@@ -52,5 +52,10 @@ router.post("/binary_comission_count_user", async (req, res) => {
   );
   res.status(200).json({ results });
 });
+router.post("/uni_comission_count_user", async (req, res) => {
+  let { address } = req.body;
+  let results = await referral_controller.uni_comission_count_user(30, address);
+  res.status(200).json({ results });
+});
 
 module.exports = router;
