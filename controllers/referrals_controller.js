@@ -1481,7 +1481,6 @@ const uni_comission_count_user = async (interval, referral_address) => {
       key: "referral_uni_options",
     });
     let bv = referral_options?.object_value?.binaryData?.lvlOptions;
-    // if()
     let toCheckReferral = referral_address;
     if (!Array.isArray(referral_address)) {
       toCheckReferral = [referral_address];
@@ -1502,7 +1501,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
       {
         $match: {
           staketime: { $gte: interval_ago },
-          uni_placed: false,
+          // uni_placed: false,
         },
       },
       {
@@ -1528,31 +1527,68 @@ const uni_comission_count_user = async (interval, referral_address) => {
     for (let i = 0; i < filteredStakes.length; i++) {
       addresses_that_staked_this_interval.push(filteredStakes[i]._id);
     }
-
-    let comissions_of_addresses = [];
-    let stakeIds = [];
     let referral_addresses = await referral_uni_users.find({
       user_address: { $in: addresses_that_staked_this_interval },
       referral_address: { $in: toCheckReferral },
     });
-    for (let i = 0; i < filteredStakes.length; i++) {
+
+    let returnData;
+    if (Array.isArray(referral_address)) {
+      returnData = [];
       for (let k = 0; k < referral_addresses.length; k++) {
-        if (referral_addresses[k].user_address == filteredStakes[i]._id) {
-          let amount_today_award =
-            (filteredStakes[i].totalAmount *
-              parseFloat(comissions[referral_addresses[k].lvl - 1])) /
-            100;
-          let maxCommissionLvl = maxCommision[referral_addresses[k].lvl - 1];
-          maxCommissionLvl = parseFloat(maxCommissionLvl);
-          amount += parseFloat(
-            maxCommissionLvl > amount_today_award
-              ? amount_today_award
-              : maxCommissionLvl
-          );
+        for (let i = 0; i < filteredStakes.length; i++) {
+          if (referral_addresses[k].user_address == filteredStakes[i]._id) {
+            let amount_today_award =
+              (filteredStakes[i].totalAmount *
+                parseFloat(comissions[referral_addresses[k].lvl - 1])) /
+              100;
+            let maxCommissionLvl = maxCommision[referral_addresses[k].lvl - 1];
+            maxCommissionLvl = parseFloat(maxCommissionLvl);
+            amount = parseFloat(
+              maxCommissionLvl > amount_today_award
+                ? amount_today_award
+                : maxCommissionLvl
+            );
+
+            let addressIndex = _.findIndex(returnData, {
+              address: referral_addresses[k].referral_address,
+            });
+            if (addressIndex != -1) {
+              returnData[addressIndex] = {
+                address: returnData[addressIndex].address,
+                amount: returnData[addressIndex].amount + amount,
+              };
+            } else {
+              returnData.push({
+                address: referral_addresses[k].referral_address,
+                amount,
+              });
+            }
+          }
         }
       }
+      console.log("returning", returnData);
+      return returnData;
+    } else {
+      for (let i = 0; i < filteredStakes.length; i++) {
+        for (let k = 0; k < referral_addresses.length; k++) {
+          if (referral_addresses[k].user_address == filteredStakes[i]._id) {
+            let amount_today_award =
+              (filteredStakes[i].totalAmount *
+                parseFloat(comissions[referral_addresses[k].lvl - 1])) /
+              100;
+            let maxCommissionLvl = maxCommision[referral_addresses[k].lvl - 1];
+            maxCommissionLvl = parseFloat(maxCommissionLvl);
+            amount += parseFloat(
+              maxCommissionLvl > amount_today_award
+                ? amount_today_award
+                : maxCommissionLvl
+            );
+          }
+        }
+      }
+      return amount;
     }
-    return amount;
   } catch (e) {
     console.log(e.message);
     return false;
