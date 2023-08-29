@@ -1265,7 +1265,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
       {
         $match: {
           staketime: { $gte: interval_ago },
-          // bv_placed: false,
+          bv_placed: false,
         },
       },
       {
