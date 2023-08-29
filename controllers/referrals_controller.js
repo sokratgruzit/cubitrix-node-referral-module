@@ -1244,6 +1244,10 @@ const binary_comission_count_user = async (interval, referral_address) => {
       .startOf("day")
       .valueOf();
     interval_ago = interval_ago / 1000;
+    let toCheckReferral = referral_address;
+    if (!Array.isArray(referral_address)) {
+      toCheckReferral = [referral_address];
+    }
     let referral_options = await options.findOne({
       key: "referral_binary_bv_options",
     });
@@ -1261,7 +1265,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
       {
         $match: {
           staketime: { $gte: interval_ago },
-          bv_placed: false,
+          // bv_placed: false,
         },
       },
       {
@@ -1286,10 +1290,11 @@ const binary_comission_count_user = async (interval, referral_address) => {
     for (let i = 0; i < filteredStakes.length; i++) {
       addresses_that_staked_this_interval.push(filteredStakes[i]._id);
     }
+    console.log(toCheckReferral);
     let referral_addresses = await referral_binary_users.aggregate([
       {
         $match: {
-          referral_address: referral_address,
+          referral_address: { $in: toCheckReferral },
         },
       },
       {
@@ -1304,6 +1309,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
         },
       },
     ]);
+    console.log(referral_addresses);
 
     let calc_result = [];
     for (let i = 0; i < referral_addresses.length; i++) {
@@ -1366,12 +1372,6 @@ const binary_comission_count_user = async (interval, referral_address) => {
           left: flush_left + (amount_sum_left - flush_left_amount),
           right: flush_right + (amount_sum_right - flush_left_amount),
         };
-        await accounts.findOneAndUpdate(
-          { address: referral_addresses[i]._id },
-          {
-            flush_out,
-          }
-        );
         amount_sum_left += flush_left;
         amount_sum_right += flush_right;
       }
@@ -1394,39 +1394,81 @@ const binary_comission_count_user = async (interval, referral_address) => {
       }
     }
 
-    let all_amount_sum = 0;
-    let left_total = 0;
-    let total_right = 0;
-    for (let k = 0; k < calc_result.length; k++) {
-      let one_calc = calc_result[k];
-      let amount = one_calc.amount;
-      if (amount == bv) {
-        amount += 1;
-      }
-      left_total = one_calc.amount_sum_left;
-      total_right = one_calc.amount_sum_right;
-      for (let i = 0; i < bv_options.length; i++) {
-        let oneBv = bv_options[i];
-        if (amount > oneBv.from) {
-          let amount_multip_prepare = amount - oneBv.from;
-          if (i + 1 == 1) {
-            amount_multip_prepare = amount;
-          }
-          if (oneBv.to && amount > oneBv.to) {
-            amount_multip_prepare = oneBv.to;
-          }
+    console.log(calc_result);
+    let returnData;
+    if (Array.isArray(referral_address)) {
+      returnData = [];
+      for (let k = 0; k < calc_result.length; k++) {
+        let all_amount_sum = 0;
+        let left_total = 0;
+        let total_right = 0;
+        let one_calc = calc_result[k];
+        let amount = one_calc.amount;
+        if (amount == bv) {
+          amount += 1;
+        }
+        left_total = one_calc.amount_sum_left;
+        total_right = one_calc.amount_sum_right;
+        for (let i = 0; i < bv_options.length; i++) {
+          let oneBv = bv_options[i];
+          if (amount > oneBv.from) {
+            let amount_multip_prepare = amount - oneBv.from;
+            if (i + 1 == 1) {
+              amount_multip_prepare = amount;
+            }
+            if (oneBv.to && amount > oneBv.to) {
+              amount_multip_prepare = oneBv.to;
+            }
 
-          let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
-          let to_Add_amount = amunt_to_multiply * oneBv.price;
-          all_amount_sum += to_Add_amount;
+            let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
+            let to_Add_amount = amunt_to_multiply * oneBv.price;
+            all_amount_sum += to_Add_amount;
+          }
+        }
+        returnData.push({
+          address: one_calc.addres,
+          all_amount_sum,
+          left_total,
+          total_right,
+        });
+      }
+    } else {
+      let all_amount_sum = 0;
+      let left_total = 0;
+      let total_right = 0;
+      for (let k = 0; k < calc_result.length; k++) {
+        let one_calc = calc_result[k];
+        let amount = one_calc.amount;
+        if (amount == bv) {
+          amount += 1;
+        }
+        left_total = one_calc.amount_sum_left;
+        total_right = one_calc.amount_sum_right;
+        for (let i = 0; i < bv_options.length; i++) {
+          let oneBv = bv_options[i];
+          if (amount > oneBv.from) {
+            let amount_multip_prepare = amount - oneBv.from;
+            if (i + 1 == 1) {
+              amount_multip_prepare = amount;
+            }
+            if (oneBv.to && amount > oneBv.to) {
+              amount_multip_prepare = oneBv.to;
+            }
+
+            let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
+            let to_Add_amount = amunt_to_multiply * oneBv.price;
+            all_amount_sum += to_Add_amount;
+          }
         }
       }
+      returnData = {
+        all_amount_sum,
+        left_total,
+        total_right,
+      };
     }
-    return {
-      all_amount_sum,
-      left_total,
-      total_right,
-    };
+
+    return returnData;
   } catch (e) {
     console.log(e.message);
     return false;
@@ -1440,6 +1482,10 @@ const uni_comission_count_user = async (interval, referral_address) => {
     });
     let bv = referral_options?.object_value?.binaryData?.lvlOptions;
     // if()
+    let toCheckReferral = referral_address;
+    if (!Array.isArray(referral_address)) {
+      toCheckReferral = [referral_address];
+    }
     let comissions =
       referral_options?.object_value?.uniData?.lvlOptions?.maxCommPercentage;
     let maxCommision =
@@ -1487,7 +1533,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
     let stakeIds = [];
     let referral_addresses = await referral_uni_users.find({
       user_address: { $in: addresses_that_staked_this_interval },
-      referral_address: referral_address,
+      referral_address: { $in: toCheckReferral },
     });
     for (let i = 0; i < filteredStakes.length; i++) {
       for (let k = 0; k < referral_addresses.length; k++) {
