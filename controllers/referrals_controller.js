@@ -470,11 +470,11 @@ const get_referral_tree = async (req, res) => {
     let binary_calcs = null;
     let dateNow = Date.now();
     if (total_users_addresses_array.length > 0) {
-      let uni_calcs = await uni_comission_count_user(
+      uni_calcs = await uni_comission_count_user(
         100,
         total_users_addresses_array
       );
-      let binary_calcs = await binary_comission_count_user(
+      binary_calcs = await binary_comission_count_user(
         30,
         total_users_addresses_array
       );
@@ -1654,6 +1654,20 @@ function hideName(name) {
   return firstLetter + middleAsterisks + lastLetter;
 }
 
+async function test_change() {
+  console.log("test_change");
+  await stakes.updateMany(
+    {},
+    {
+      $set: {
+        bv_placed: false,
+        uni_placed: false,
+      },
+    }
+  );
+  console.log("test_change_done");
+}
+
 module.exports = {
   uni_comission_count,
   binary_comission_count,
@@ -1673,3 +1687,5 @@ module.exports = {
   uni_comission_count_user,
   check_referral_available,
 };
+
+// test_change();
