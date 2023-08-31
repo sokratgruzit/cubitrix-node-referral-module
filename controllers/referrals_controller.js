@@ -432,9 +432,15 @@ const get_referral_tree = async (req, res) => {
     check_referral_for_users.sort((a, b) => {
       return a._id - b._id;
     });
+    let total_users_addresses_array = [address];
     for (let i = 0; i < check_referral_for_users.length; i++) {
       let documents = check_referral_for_users[i]?.documents;
       for (let k = 0; k < documents.length; k++) {
+        let user_address_this_row =
+          check_referral_for_users[i].documents[k].user_address;
+        if (!total_users_addresses_array.includes(user_address_this_row)) {
+          total_users_addresses_array.push(user_address_this_row);
+        }
         if (documents[k]?.joinedAccountMetas[0]?.name) {
           check_referral_for_users[i].documents[k].joinedAccountMetas[0].name =
             hideName(documents[k]?.joinedAccountMetas[0]?.name);
@@ -442,6 +448,19 @@ const get_referral_tree = async (req, res) => {
             hideName(documents[k]?.joinedAccountMetas[0]?.email);
         }
       }
+    }
+    let uni_calcs = null;
+    let binary_calcs = null;
+    let dateNow = Date.now();
+    if (total_users_addresses_array.length > 0) {
+      let uni_calcs = await uni_comission_count_user(
+        100,
+        total_users_addresses_array
+      );
+      let binary_calcs = await binary_comission_count_user(
+        30,
+        total_users_addresses_array
+      );
     }
     let missing_positions = [];
     let no_position_child = [];
@@ -566,6 +585,8 @@ const get_referral_tree = async (req, res) => {
     }
     return main_helper.success_response(res, {
       final_result,
+      uni_calcs,
+      binary_calcs,
     });
   } catch (e) {
     console.log(e.message);
@@ -1265,7 +1286,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
       {
         $match: {
           staketime: { $gte: interval_ago },
-          bv_placed: false,
+          // bv_placed: false,
         },
       },
       {
@@ -1290,7 +1311,6 @@ const binary_comission_count_user = async (interval, referral_address) => {
     for (let i = 0; i < filteredStakes.length; i++) {
       addresses_that_staked_this_interval.push(filteredStakes[i]._id);
     }
-    console.log(toCheckReferral);
     let referral_addresses = await referral_binary_users.aggregate([
       {
         $match: {
@@ -1309,7 +1329,6 @@ const binary_comission_count_user = async (interval, referral_address) => {
         },
       },
     ]);
-    console.log(referral_addresses);
 
     let calc_result = [];
     for (let i = 0; i < referral_addresses.length; i++) {
@@ -1394,7 +1413,6 @@ const binary_comission_count_user = async (interval, referral_address) => {
       }
     }
 
-    console.log(calc_result);
     let returnData;
     if (Array.isArray(referral_address)) {
       returnData = [];
@@ -1426,7 +1444,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
           }
         }
         returnData.push({
-          address: one_calc.addres,
+          address: one_calc.address,
           all_amount_sum,
           left_total,
           total_right,
@@ -1567,7 +1585,6 @@ const uni_comission_count_user = async (interval, referral_address) => {
           }
         }
       }
-      console.log("returning", returnData);
       return returnData;
     } else {
       for (let i = 0; i < filteredStakes.length; i++) {
