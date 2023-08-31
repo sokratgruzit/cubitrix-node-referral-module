@@ -272,12 +272,31 @@ const get_referral_parent_address = async (req, res) => {
 const get_referral_data_uni = async (req, res) => {
   try {
     let response = {};
-    let { address, page, limit } = req.body;
+    let { address, page, limit, lvl, search } = req.body;
+    let matching = {
+      referral_address: address,
+    };
+    if (lvl) {
+      matching.lvl = lvl;
+    }
+    if (search) {
+      let user_addresses = await accounts.find({
+        $or: [
+          { address: { $regex: search, $options: "i" } },
+          { account_owner: { $regex: search, $options: "i" } },
+        ],
+      });
+      let search_adddresses = [];
+      for (let i = 0; i < user_addresses.length; i++) {
+        search_adddresses.push(user_addresses[i].address);
+      }
+      if (search_adddresses.length > 0) {
+        matching.user_address = { $in: search_adddresses };
+      }
+    }
     let user_uni = await referral_uni_users.aggregate([
       {
-        $match: {
-          referral_address: address,
-        },
+        $match: matching,
       },
       {
         $lookup: {
@@ -351,9 +370,7 @@ const get_referral_data_uni = async (req, res) => {
       }
     }
     response.list = user_uni;
-    let total_page = await referral_uni_users.count({
-      referral_address: address,
-    });
+    let total_page = await referral_uni_users.count(matching);
     response.total_page = Math.ceil(total_page / limit);
     response.page = page;
     response.limit = limit;
