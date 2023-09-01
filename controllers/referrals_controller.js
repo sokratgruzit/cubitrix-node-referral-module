@@ -405,8 +405,6 @@ const get_referral_tree = async (req, res) => {
 
     let address = req.mainAddress;
 
-    console.log(req.mainAddress);
-
     if (!address) {
       return main_helper.error_response(res, "you are not logged in");
     }
@@ -503,36 +501,18 @@ const get_referral_tree = async (req, res) => {
     let binary_calcs = null;
     if (total_users_addresses_array.length > 0) {
       if (uni_days == "daily") {
-        uni_calcs = await uni_comission_count_user(
-          1,
-          total_users_addresses_array
-        );
+        uni_calcs = await uni_comission_count_user(1, total_users_addresses_array);
       } else if (uni_days === "monthly") {
-        uni_calcs = await uni_comission_count_user(
-          31,
-          total_users_addresses_array
-        );
+        uni_calcs = await uni_comission_count_user(31, total_users_addresses_array);
       } else if (uni_days === "weekly") {
-        uni_calcs = await uni_comission_count_user(
-          7,
-          total_users_addresses_array
-        );
+        uni_calcs = await uni_comission_count_user(7, total_users_addresses_array);
       }
       if (binary_days == "daily") {
-        binary_calcs = await binary_comission_count_user(
-          1,
-          total_users_addresses_array
-        );
+        binary_calcs = await binary_comission_count_user(1, total_users_addresses_array);
       } else if (binary_days === "monthly") {
-        binary_calcs = await binary_comission_count_user(
-          31,
-          total_users_addresses_array
-        );
+        binary_calcs = await binary_comission_count_user(31, total_users_addresses_array);
       } else if (binary_days === "weekly") {
-        binary_calcs = await binary_comission_count_user(
-          7,
-          total_users_addresses_array
-        );
+        binary_calcs = await binary_comission_count_user(7, total_users_addresses_array);
       }
     }
     let missing_positions = [];
@@ -1693,7 +1673,7 @@ async function test_change() {
         bv_placed: false,
         uni_placed: false,
       },
-    }
+    },
   );
   console.log("test_change_done");
 }
