@@ -9,36 +9,26 @@ router.use(cookieParser());
 
 // auto generate referral place
 router.post("/register_referral", referral_controller.register_referral);
-router.post(
-  "/check_referral_available",
-  referral_controller.check_referral_available
-);
+router.post("/check_referral_available", referral_controller.check_referral_available);
 
 router.post("/get_referral_data", referral_controller.get_referral_data);
 router.post("/get_referral_tree", referral_controller.get_referral_tree);
-router.post(
-  "/get_referral_data_uni",
-  referral_controller.get_referral_data_uni
-);
+router.post("/get_referral_data_uni", referral_controller.get_referral_data_uni);
 
 router.post("/get_referral_code", referral_controller.get_referral_code);
 router.post(
   "/get_referral_uni_transactions",
-  referral_controller.get_referral_uni_transactions
+  referral_controller.get_referral_uni_transactions,
 );
 
 router.post(
   "/get_referral_binary_transactions",
-  referral_controller.get_referral_binary_transactions
+  referral_controller.get_referral_binary_transactions,
 );
-router.post(
-  "/get_reerral_global_data",
-  referral_controller.get_reerral_global_data
-);
-router.post("/get_referral_address", referral_controller.get_referral_address);
+router.post("/get_reerral_global_data", referral_controller.get_reerral_global_data);
 router.post(
   "/get_referral_parent_address",
-  referral_controller.get_referral_parent_address
+  referral_controller.get_referral_parent_address,
 );
 router.post("/get_referral_options", referral_controller.get_referral_options);
 router.post("/binary_comission_count_user", async (req, res) => {
@@ -48,7 +38,7 @@ router.post("/binary_comission_count_user", async (req, res) => {
   const daysPassed = currentDayOfMonth - 1;
   let results = await referral_controller.binary_comission_count_user(
     daysPassed,
-    address
+    address,
   );
   res.status(200).json({ results });
 });

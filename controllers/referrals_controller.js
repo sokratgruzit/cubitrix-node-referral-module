@@ -25,10 +25,15 @@ const mongoose = require("mongoose");
 
 const register_referral = async (req, res) => {
   try {
-    let { referral_address, user_address, side } = req.body;
+    let { referral_address, side } = req.body;
+
+    let user_address = req.address;
+
+    if (!user_address) {
+      return main_helper.error_response(res, "you are not logged in");
+    }
 
     referral_address = referral_address.toLowerCase();
-    user_address = user_address.toLowerCase();
     let checkAddress = referral_address.split("_");
     let user_main_addr = await accounts.findOne({
       account_owner: user_address,
@@ -100,7 +105,11 @@ const register_referral = async (req, res) => {
 };
 const check_referral_available = async (req, res) => {
   try {
-    let { referral_address, user_address } = req.body;
+    let { referral_address } = req.body;
+    let user_address = req.address;
+    if (!user_address) {
+      return main_helper.error_response(res, "you are not logged in");
+    }
     referral_address = referral_address.toLowerCase();
     user_address = user_address.toLowerCase();
     let checkAddress = referral_address.split("_");
@@ -191,7 +200,11 @@ const check_referral_available = async (req, res) => {
 const get_referral_data = async (req, res) => {
   try {
     let response = {};
-    let { address, page, limit } = req.body;
+    let { page, limit } = req.body;
+    let address = req.mainAddress;
+    if (!address) {
+      return main_helper.error_response(res, "you are not logged in");
+    }
     let user_binary = await referral_binary_users.aggregate([
       {
         $match: {
@@ -252,7 +265,12 @@ const get_referral_data = async (req, res) => {
 
 const get_referral_parent_address = async (req, res) => {
   try {
-    let { address } = req.body;
+    let address = req.mainAddress;
+
+    if (!address) {
+      return main_helper.error_response(res, "you are not logged in");
+    }
+
     let parent_ref = await referral_binary_users.findOne({
       user_address: address,
       lvl: 1,
@@ -267,7 +285,12 @@ const get_referral_parent_address = async (req, res) => {
 const get_referral_data_uni = async (req, res) => {
   try {
     let response = {};
-    let { address, page, limit, lvl, search } = req.body;
+    let { page, limit, lvl, search } = req.body;
+    let address = req.mainAddress;
+
+    if (!address) {
+      return main_helper.error_response(res, "you are not logged in");
+    }
     let matching = {
       referral_address: address,
     };
@@ -378,7 +401,16 @@ const get_referral_data_uni = async (req, res) => {
 
 const get_referral_tree = async (req, res) => {
   try {
-    let { address, second_address } = req.body;
+    let { second_address } = req.body;
+
+    let address = req.mainAddress;
+
+    console.log(req.mainAddress);
+
+    if (!address) {
+      return main_helper.error_response(res, "you are not logged in");
+    }
+
     let lvl = 1;
     let minLevel = lvl;
     let maxLevel = lvl + 3;
@@ -448,8 +480,7 @@ const get_referral_tree = async (req, res) => {
     for (let i = 0; i < check_referral_for_users.length; i++) {
       let documents = check_referral_for_users[i]?.documents;
       for (let k = 0; k < documents.length; k++) {
-        let user_address_this_row =
-          check_referral_for_users[i].documents[k].user_address;
+        let user_address_this_row = check_referral_for_users[i].documents[k].user_address;
         if (!total_users_addresses_array.includes(user_address_this_row)) {
           total_users_addresses_array.push(user_address_this_row);
         }
@@ -467,13 +498,10 @@ const get_referral_tree = async (req, res) => {
     let binary_calcs = null;
     let dateNow = Date.now();
     if (total_users_addresses_array.length > 0) {
-      let uni_calcs = await uni_comission_count_user(
-        100,
-        total_users_addresses_array
-      );
+      let uni_calcs = await uni_comission_count_user(100, total_users_addresses_array);
       let binary_calcs = await binary_comission_count_user(
         30,
-        total_users_addresses_array
+        total_users_addresses_array,
       );
     }
     let missing_positions = [];
@@ -605,7 +633,12 @@ const get_referral_tree = async (req, res) => {
 
 const get_referral_code = async (req, res) => {
   try {
-    let { address, lvl, position, main_address } = req.body;
+    let { address, lvl, position } = req.body;
+    let main_address = req.mainAddress;
+
+    if (!main_address) {
+      return main_helper.error_response(res, "you are not logged in");
+    }
     if (!address && !lvl && !position && !main_address) {
       return main_helper.error_message(res, "please provide all position");
     }
@@ -619,7 +652,14 @@ const get_referral_code = async (req, res) => {
 
 const get_referral_uni_transactions = async (req, res) => {
   try {
-    let { address, limit, page } = req.body;
+    let { limit, page } = req.body;
+
+    let address = req.mainAddress;
+
+    if (!address) {
+      return main_helper.error_response(res, "you are not logged in");
+    }
+
     let transaction = await transactions
       .find({ to: address, tx_type: "bonus", "tx_options.type": "uni" })
       .sort({ createdAt: -1 })
@@ -640,7 +680,10 @@ const get_referral_uni_transactions = async (req, res) => {
 
 const get_referral_binary_transactions = async (req, res) => {
   try {
-    let { address, limit, page } = req.body;
+    let { limit, page } = req.body;
+
+    let address = req.mainAddress;
+
     let transaction = await transactions
       .find({ to: address, tx_type: "bonus", "tx_options.type": "binary bv" })
       .sort({ createdAt: -1 })
@@ -661,7 +704,9 @@ const get_referral_binary_transactions = async (req, res) => {
 
 const get_reerral_global_data = async (req, res) => {
   try {
-    let { address, limit, page } = req.body;
+    let { limit, page } = req.body;
+
+    let address = req.mainAddress;
     let uni_users = await referral_uni_users.count({
       referral_address: address,
     });
@@ -757,19 +802,6 @@ const get_reerral_global_data = async (req, res) => {
   }
 };
 
-const get_referral_address = async (req, res) => {
-  try {
-    let { address } = req.body;
-    let account = await accounts.findOne({
-      account_owner: address,
-      account_category: "main",
-    });
-    return main_helper.success_response(res, account?.address);
-  } catch (e) {
-    console.log(e.message);
-    return main_helper.error_response(res, "error");
-  }
-};
 const get_referral_options = async (req, res) => {
   try {
     let { name } = req.body;
@@ -1549,7 +1581,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
             amount = parseFloat(
               maxCommissionLvl > amount_today_award
                 ? amount_today_award
-                : maxCommissionLvl
+                : maxCommissionLvl,
             );
 
             let addressIndex = _.findIndex(returnData, {
@@ -1583,7 +1615,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
             amount += parseFloat(
               maxCommissionLvl > amount_today_award
                 ? amount_today_award
-                : maxCommissionLvl
+                : maxCommissionLvl,
             );
           }
         }
@@ -1632,7 +1664,6 @@ module.exports = {
   get_referral_uni_transactions,
   get_referral_binary_transactions,
   get_reerral_global_data,
-  get_referral_address,
   get_referral_parent_address,
   get_referral_options,
   cron_test,
