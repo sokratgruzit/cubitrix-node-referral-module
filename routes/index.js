@@ -2,6 +2,8 @@ const express = require("express");
 const router = express();
 const referral_controller = require("../controllers/referrals_controller");
 
+const { options } = require("@cubitrix/models");
+
 const cookieParser = require("cookie-parser");
 
 router.use(cookieParser());
@@ -45,10 +47,7 @@ router.post("/binary_comission_count_user", async (req, res) => {
   if (binary_bv_dayes == "daily") {
     results = await referral_controller.binary_comission_count_user(1, address);
   } else if (binary_bv_dayes === "monthly") {
-    results = await referral_controller.binary_comission_count_user(
-      daysPassed,
-      address
-    );
+    results = await referral_controller.binary_comission_count_user(daysPassed, address);
   } else if (binary_bv_dayes === "weekly") {
     results = await referral_controller.binary_comission_count_user(7, address);
   }
@@ -65,10 +64,7 @@ router.post("/uni_comission_count_user", async (req, res) => {
   if (uni_days == "daily") {
     results = await referral_controller.uni_comission_count_user(1, address);
   } else if (uni_days === "monthly") {
-    results = await referral_controller.uni_comission_count_user(
-      daysPassed,
-      address
-    );
+    results = await referral_controller.uni_comission_count_user(daysPassed, address);
   } else if (uni_days === "weekly") {
     results = await referral_controller.uni_comission_count_user(7, address);
   }
