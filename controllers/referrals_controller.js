@@ -434,8 +434,8 @@ const get_referral_tree = async (req, res) => {
         referral_address: address,
         user_address: second_address,
       });
-      let max_level_for_new_tree = binary_max_lvl - checkAddress.lvl;
-      binary_max_depth = checkAddress.lvl;
+      let max_level_for_new_tree = binary_max_lvl - checkAddress?.lvl;
+      binary_max_depth = checkAddress?.lvl;
       if (max_level_for_new_tree < maxLevel) {
         maxLevel = max_level_for_new_tree;
       }
@@ -925,16 +925,16 @@ const uni_comission_count = async (interval, address = null) => {
       if (referral_addresses[k].user_address == filteredStakes[i]._id) {
         let amount_today_award =
           (filteredStakes[i].totalAmount *
-            parseFloat(comissions[referral_addresses[k].lvl - 1])) /
+            parseFloat(comissions[referral_addresses[k]?.lvl - 1])) /
           100;
-        let maxCommissionLvl = maxCommision[referral_addresses[k].lvl - 1];
+        let maxCommissionLvl = maxCommision[referral_addresses[k]?.lvl - 1];
         maxCommissionLvl = parseFloat(maxCommissionLvl);
         comissions_of_addresses.push({
           address: referral_addresses[k].user_address,
           referral_address: referral_addresses[k].referral_address,
           amount_today: filteredStakes[i].totalAmount,
-          lvl: referral_addresses[k].lvl,
-          percent: comissions[referral_addresses[k].lvl - 1],
+          lvl: referral_addresses[k]?.lvl,
+          percent: comissions[referral_addresses[k]?.lvl - 1],
           amount_today_reward:
             maxCommissionLvl > amount_today_award ? amount_today_award : maxCommissionLvl,
         });
@@ -962,7 +962,7 @@ const uni_comission_count = async (interval, address = null) => {
       tx_options: {
         method: "referral",
         type: "uni",
-        lvl: from.lvl,
+        lvl: from?.lvl,
         percent: from.percent,
       },
     });
@@ -1262,7 +1262,7 @@ const binary_comission_count = async (interval, address = null) => {
           tx_options: {
             method: "referral",
             type: "binary bv",
-            lvl: oneTx.lvl,
+            lvl: oneTx?.lvl,
           },
         });
       }
@@ -1585,9 +1585,9 @@ const uni_comission_count_user = async (interval, referral_address) => {
           if (referral_addresses[k].user_address == filteredStakes[i]._id) {
             let amount_today_award =
               (filteredStakes[i].totalAmount *
-                parseFloat(comissions[referral_addresses[k].lvl - 1])) /
+                parseFloat(comissions[referral_addresses[k]?.lvl - 1])) /
               100;
-            let maxCommissionLvl = maxCommision[referral_addresses[k].lvl - 1];
+            let maxCommissionLvl = maxCommision[referral_addresses[k]?.lvl - 1];
             maxCommissionLvl = parseFloat(maxCommissionLvl);
             amount = parseFloat(
               maxCommissionLvl > amount_today_award
@@ -1619,9 +1619,9 @@ const uni_comission_count_user = async (interval, referral_address) => {
           if (referral_addresses[k].user_address == filteredStakes[i]._id) {
             let amount_today_award =
               (filteredStakes[i].totalAmount *
-                parseFloat(comissions[referral_addresses[k].lvl - 1])) /
+                parseFloat(comissions[referral_addresses[k]?.lvl - 1])) /
               100;
-            let maxCommissionLvl = maxCommision[referral_addresses[k].lvl - 1];
+            let maxCommissionLvl = maxCommision[referral_addresses[k]?.lvl - 1];
             maxCommissionLvl = parseFloat(maxCommissionLvl);
             amount += parseFloat(
               maxCommissionLvl > amount_today_award

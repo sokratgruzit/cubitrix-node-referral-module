@@ -1,6 +1,6 @@
 {
   "name": "@cubitrix/cubitrix-refferal-node-module",
-  "version": "0.0.78",
+  "version": "0.0.79",
   "description": "module for managing referral data",
   "main": "referral.js",
   "scripts": {
