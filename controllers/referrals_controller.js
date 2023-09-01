@@ -417,6 +417,11 @@ const get_referral_tree = async (req, res) => {
     let referral_options = await options.findOne({
       key: "referral_binary_bv_options",
     });
+    let referral_options_uni = await options.findOne({
+      key: "referral_uni_options",
+    });
+    let uni_days = referral_options_uni?.object_value?.uniData?.calculated;
+    let binary_days = referral_options?.object_value?.binaryData?.calculated;
     let binary_max_lvl = referral_options?.object_value?.binaryData?.maxUsers
       ? referral_options?.object_value?.binaryData?.maxUsers
       : 11;
@@ -496,13 +501,39 @@ const get_referral_tree = async (req, res) => {
     }
     let uni_calcs = null;
     let binary_calcs = null;
-    let dateNow = Date.now();
     if (total_users_addresses_array.length > 0) {
-      let uni_calcs = await uni_comission_count_user(100, total_users_addresses_array);
-      let binary_calcs = await binary_comission_count_user(
-        30,
-        total_users_addresses_array,
-      );
+      if (uni_days == "daily") {
+        uni_calcs = await uni_comission_count_user(
+          1,
+          total_users_addresses_array
+        );
+      } else if (uni_days === "monthly") {
+        uni_calcs = await uni_comission_count_user(
+          31,
+          total_users_addresses_array
+        );
+      } else if (uni_days === "weekly") {
+        uni_calcs = await uni_comission_count_user(
+          7,
+          total_users_addresses_array
+        );
+      }
+      if (binary_days == "daily") {
+        binary_calcs = await binary_comission_count_user(
+          1,
+          total_users_addresses_array
+        );
+      } else if (binary_days === "monthly") {
+        binary_calcs = await binary_comission_count_user(
+          31,
+          total_users_addresses_array
+        );
+      } else if (binary_days === "weekly") {
+        binary_calcs = await binary_comission_count_user(
+          7,
+          total_users_addresses_array
+        );
+      }
     }
     let missing_positions = [];
     let no_position_child = [];
@@ -1653,6 +1684,20 @@ function hideName(name) {
   return firstLetter + middleAsterisks + lastLetter;
 }
 
+async function test_change() {
+  console.log("test_change");
+  await stakes.updateMany(
+    {},
+    {
+      $set: {
+        bv_placed: false,
+        uni_placed: false,
+      },
+    }
+  );
+  console.log("test_change_done");
+}
+
 module.exports = {
   uni_comission_count,
   binary_comission_count,
@@ -1671,3 +1716,5 @@ module.exports = {
   uni_comission_count_user,
   check_referral_available,
 };
+
+// test_change();

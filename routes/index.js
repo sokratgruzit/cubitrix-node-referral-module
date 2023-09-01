@@ -36,15 +36,42 @@ router.post("/binary_comission_count_user", async (req, res) => {
   const currentDate = new Date();
   const currentDayOfMonth = currentDate.getDate();
   const daysPassed = currentDayOfMonth - 1;
-  let results = await referral_controller.binary_comission_count_user(
-    daysPassed,
-    address,
-  );
+  let results;
+  let referral_options = await options.findOne({
+    key: "referral_binary_bv_options",
+  });
+  let binary_bv_dayes = referral_options?.object_value?.binaryData?.calculated;
+
+  if (binary_bv_dayes == "daily") {
+    results = await referral_controller.binary_comission_count_user(1, address);
+  } else if (binary_bv_dayes === "monthly") {
+    results = await referral_controller.binary_comission_count_user(
+      daysPassed,
+      address
+    );
+  } else if (binary_bv_dayes === "weekly") {
+    results = await referral_controller.binary_comission_count_user(7, address);
+  }
   res.status(200).json({ results });
 });
 router.post("/uni_comission_count_user", async (req, res) => {
   let { address } = req.body;
-  let results = await referral_controller.uni_comission_count_user(30, address);
+  let results;
+  let referral_options_uni = await options.findOne({
+    key: "referral_uni_options",
+  });
+  let uni_days = referral_options_uni?.object_value?.uniData?.calculated;
+
+  if (uni_days == "daily") {
+    results = await referral_controller.uni_comission_count_user(1, address);
+  } else if (uni_days === "monthly") {
+    results = await referral_controller.uni_comission_count_user(
+      daysPassed,
+      address
+    );
+  } else if (uni_days === "weekly") {
+    results = await referral_controller.uni_comission_count_user(7, address);
+  }
   res.status(200).json({ results });
 });
 
