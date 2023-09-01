@@ -267,12 +267,31 @@ const get_referral_parent_address = async (req, res) => {
 const get_referral_data_uni = async (req, res) => {
   try {
     let response = {};
-    let { address, page, limit } = req.body;
+    let { address, page, limit, lvl, search } = req.body;
+    let matching = {
+      referral_address: address,
+    };
+    if (lvl) {
+      matching.lvl = lvl;
+    }
+    if (search) {
+      let user_addresses = await accounts.find({
+        $or: [
+          { address: { $regex: search, $options: "i" } },
+          { account_owner: { $regex: search, $options: "i" } },
+        ],
+      });
+      let search_adddresses = [];
+      for (let i = 0; i < user_addresses.length; i++) {
+        search_adddresses.push(user_addresses[i].address);
+      }
+      if (search_adddresses.length > 0) {
+        matching.user_address = { $in: search_adddresses };
+      }
+    }
     let user_uni = await referral_uni_users.aggregate([
       {
-        $match: {
-          referral_address: address,
-        },
+        $match: matching,
       },
       {
         $lookup: {
@@ -346,9 +365,7 @@ const get_referral_data_uni = async (req, res) => {
       }
     }
     response.list = user_uni;
-    let total_page = await referral_uni_users.count({
-      referral_address: address,
-    });
+    let total_page = await referral_uni_users.count(matching);
     response.total_page = Math.ceil(total_page / limit);
     response.page = page;
     response.limit = limit;
@@ -427,9 +444,15 @@ const get_referral_tree = async (req, res) => {
     check_referral_for_users.sort((a, b) => {
       return a._id - b._id;
     });
+    let total_users_addresses_array = [address];
     for (let i = 0; i < check_referral_for_users.length; i++) {
       let documents = check_referral_for_users[i]?.documents;
       for (let k = 0; k < documents.length; k++) {
+        let user_address_this_row =
+          check_referral_for_users[i].documents[k].user_address;
+        if (!total_users_addresses_array.includes(user_address_this_row)) {
+          total_users_addresses_array.push(user_address_this_row);
+        }
         if (documents[k]?.joinedAccountMetas[0]?.name) {
           check_referral_for_users[i].documents[k].joinedAccountMetas[0].name = hideName(
             documents[k]?.joinedAccountMetas[0]?.name,
@@ -439,6 +462,19 @@ const get_referral_tree = async (req, res) => {
           );
         }
       }
+    }
+    let uni_calcs = null;
+    let binary_calcs = null;
+    let dateNow = Date.now();
+    if (total_users_addresses_array.length > 0) {
+      let uni_calcs = await uni_comission_count_user(
+        100,
+        total_users_addresses_array
+      );
+      let binary_calcs = await binary_comission_count_user(
+        30,
+        total_users_addresses_array
+      );
     }
     let missing_positions = [];
     let no_position_child = [];
@@ -558,6 +594,8 @@ const get_referral_tree = async (req, res) => {
     }
     return main_helper.success_response(res, {
       final_result,
+      uni_calcs,
+      binary_calcs,
     });
   } catch (e) {
     console.log(e.message);
@@ -1219,6 +1257,10 @@ const binary_comission_count_user = async (interval, referral_address) => {
   try {
     let interval_ago = moment().subtract(interval, "days").startOf("day").valueOf();
     interval_ago = interval_ago / 1000;
+    let toCheckReferral = referral_address;
+    if (!Array.isArray(referral_address)) {
+      toCheckReferral = [referral_address];
+    }
     let referral_options = await options.findOne({
       key: "referral_binary_bv_options",
     });
@@ -1235,7 +1277,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
       {
         $match: {
           staketime: { $gte: interval_ago },
-          bv_placed: false,
+          // bv_placed: false,
         },
       },
       {
@@ -1263,7 +1305,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
     let referral_addresses = await referral_binary_users.aggregate([
       {
         $match: {
-          referral_address: referral_address,
+          referral_address: { $in: toCheckReferral },
         },
       },
       {
@@ -1337,12 +1379,6 @@ const binary_comission_count_user = async (interval, referral_address) => {
           left: flush_left + (amount_sum_left - flush_left_amount),
           right: flush_right + (amount_sum_right - flush_left_amount),
         };
-        await accounts.findOneAndUpdate(
-          { address: referral_addresses[i]._id },
-          {
-            flush_out,
-          },
-        );
         amount_sum_left += flush_left;
         amount_sum_right += flush_right;
       }
@@ -1365,39 +1401,80 @@ const binary_comission_count_user = async (interval, referral_address) => {
       }
     }
 
-    let all_amount_sum = 0;
-    let left_total = 0;
-    let total_right = 0;
-    for (let k = 0; k < calc_result.length; k++) {
-      let one_calc = calc_result[k];
-      let amount = one_calc.amount;
-      if (amount == bv) {
-        amount += 1;
-      }
-      left_total = one_calc.amount_sum_left;
-      total_right = one_calc.amount_sum_right;
-      for (let i = 0; i < bv_options.length; i++) {
-        let oneBv = bv_options[i];
-        if (amount > oneBv.from) {
-          let amount_multip_prepare = amount - oneBv.from;
-          if (i + 1 == 1) {
-            amount_multip_prepare = amount;
-          }
-          if (oneBv.to && amount > oneBv.to) {
-            amount_multip_prepare = oneBv.to;
-          }
+    let returnData;
+    if (Array.isArray(referral_address)) {
+      returnData = [];
+      for (let k = 0; k < calc_result.length; k++) {
+        let all_amount_sum = 0;
+        let left_total = 0;
+        let total_right = 0;
+        let one_calc = calc_result[k];
+        let amount = one_calc.amount;
+        if (amount == bv) {
+          amount += 1;
+        }
+        left_total = one_calc.amount_sum_left;
+        total_right = one_calc.amount_sum_right;
+        for (let i = 0; i < bv_options.length; i++) {
+          let oneBv = bv_options[i];
+          if (amount > oneBv.from) {
+            let amount_multip_prepare = amount - oneBv.from;
+            if (i + 1 == 1) {
+              amount_multip_prepare = amount;
+            }
+            if (oneBv.to && amount > oneBv.to) {
+              amount_multip_prepare = oneBv.to;
+            }
 
-          let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
-          let to_Add_amount = amunt_to_multiply * oneBv.price;
-          all_amount_sum += to_Add_amount;
+            let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
+            let to_Add_amount = amunt_to_multiply * oneBv.price;
+            all_amount_sum += to_Add_amount;
+          }
+        }
+        returnData.push({
+          address: one_calc.address,
+          all_amount_sum,
+          left_total,
+          total_right,
+        });
+      }
+    } else {
+      let all_amount_sum = 0;
+      let left_total = 0;
+      let total_right = 0;
+      for (let k = 0; k < calc_result.length; k++) {
+        let one_calc = calc_result[k];
+        let amount = one_calc.amount;
+        if (amount == bv) {
+          amount += 1;
+        }
+        left_total = one_calc.amount_sum_left;
+        total_right = one_calc.amount_sum_right;
+        for (let i = 0; i < bv_options.length; i++) {
+          let oneBv = bv_options[i];
+          if (amount > oneBv.from) {
+            let amount_multip_prepare = amount - oneBv.from;
+            if (i + 1 == 1) {
+              amount_multip_prepare = amount;
+            }
+            if (oneBv.to && amount > oneBv.to) {
+              amount_multip_prepare = oneBv.to;
+            }
+
+            let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
+            let to_Add_amount = amunt_to_multiply * oneBv.price;
+            all_amount_sum += to_Add_amount;
+          }
         }
       }
+      returnData = {
+        all_amount_sum,
+        left_total,
+        total_right,
+      };
     }
-    return {
-      all_amount_sum,
-      left_total,
-      total_right,
-    };
+
+    return returnData;
   } catch (e) {
     console.log(e.message);
     return false;
@@ -1410,7 +1487,10 @@ const uni_comission_count_user = async (interval, referral_address) => {
       key: "referral_uni_options",
     });
     let bv = referral_options?.object_value?.binaryData?.lvlOptions;
-    // if()
+    let toCheckReferral = referral_address;
+    if (!Array.isArray(referral_address)) {
+      toCheckReferral = [referral_address];
+    }
     let comissions =
       referral_options?.object_value?.uniData?.lvlOptions?.maxCommPercentage;
     let maxCommision = referral_options?.object_value?.uniData?.lvlOptions?.maxCommision;
@@ -1423,7 +1503,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
       {
         $match: {
           staketime: { $gte: interval_ago },
-          uni_placed: false,
+          // uni_placed: false,
         },
       },
       {
@@ -1449,29 +1529,67 @@ const uni_comission_count_user = async (interval, referral_address) => {
     for (let i = 0; i < filteredStakes.length; i++) {
       addresses_that_staked_this_interval.push(filteredStakes[i]._id);
     }
-
-    let comissions_of_addresses = [];
-    let stakeIds = [];
     let referral_addresses = await referral_uni_users.find({
       user_address: { $in: addresses_that_staked_this_interval },
-      referral_address: referral_address,
+      referral_address: { $in: toCheckReferral },
     });
-    for (let i = 0; i < filteredStakes.length; i++) {
+
+    let returnData;
+    if (Array.isArray(referral_address)) {
+      returnData = [];
       for (let k = 0; k < referral_addresses.length; k++) {
-        if (referral_addresses[k].user_address == filteredStakes[i]._id) {
-          let amount_today_award =
-            (filteredStakes[i].totalAmount *
-              parseFloat(comissions[referral_addresses[k].lvl - 1])) /
-            100;
-          let maxCommissionLvl = maxCommision[referral_addresses[k].lvl - 1];
-          maxCommissionLvl = parseFloat(maxCommissionLvl);
-          amount += parseFloat(
-            maxCommissionLvl > amount_today_award ? amount_today_award : maxCommissionLvl,
-          );
+        for (let i = 0; i < filteredStakes.length; i++) {
+          if (referral_addresses[k].user_address == filteredStakes[i]._id) {
+            let amount_today_award =
+              (filteredStakes[i].totalAmount *
+                parseFloat(comissions[referral_addresses[k].lvl - 1])) /
+              100;
+            let maxCommissionLvl = maxCommision[referral_addresses[k].lvl - 1];
+            maxCommissionLvl = parseFloat(maxCommissionLvl);
+            amount = parseFloat(
+              maxCommissionLvl > amount_today_award
+                ? amount_today_award
+                : maxCommissionLvl
+            );
+
+            let addressIndex = _.findIndex(returnData, {
+              address: referral_addresses[k].referral_address,
+            });
+            if (addressIndex != -1) {
+              returnData[addressIndex] = {
+                address: returnData[addressIndex].address,
+                amount: returnData[addressIndex].amount + amount,
+              };
+            } else {
+              returnData.push({
+                address: referral_addresses[k].referral_address,
+                amount,
+              });
+            }
+          }
         }
       }
+      return returnData;
+    } else {
+      for (let i = 0; i < filteredStakes.length; i++) {
+        for (let k = 0; k < referral_addresses.length; k++) {
+          if (referral_addresses[k].user_address == filteredStakes[i]._id) {
+            let amount_today_award =
+              (filteredStakes[i].totalAmount *
+                parseFloat(comissions[referral_addresses[k].lvl - 1])) /
+              100;
+            let maxCommissionLvl = maxCommision[referral_addresses[k].lvl - 1];
+            maxCommissionLvl = parseFloat(maxCommissionLvl);
+            amount += parseFloat(
+              maxCommissionLvl > amount_today_award
+                ? amount_today_award
+                : maxCommissionLvl
+            );
+          }
+        }
+      }
+      return amount;
     }
-    return amount;
   } catch (e) {
     console.log(e.message);
     return false;
