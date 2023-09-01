@@ -265,11 +265,10 @@ const get_referral_data = async (req, res) => {
 
 const get_referral_parent_address = async (req, res) => {
   try {
-    let address = req.mainAddress;
-
-    if (!address) {
+    if (!req.mainAddress) {
       return main_helper.error_response(res, "you are not logged in");
     }
+    let { address } = req.body;
 
     let parent_ref = await referral_binary_users.findOne({
       user_address: address,
