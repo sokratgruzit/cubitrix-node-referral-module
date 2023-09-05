@@ -402,7 +402,6 @@ const get_referral_tree = async (req, res) => {
   try {
     let { second_address } = req.body;
 
-    console.log(req.address, req.mainAddress);
     let address = req.mainAddress;
 
     if (!address) {
