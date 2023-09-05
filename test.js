@@ -9,6 +9,10 @@ const app = express();
 app.use(express.json({ extended: true }));
 app.use(cookieParser());
 
+const isAuthenticated = require("./middleware/IsAuthenticated");
+
+app.use(isAuthenticated);
+
 const cors_options = {
   origin: ["http://localhost:4000", "http://localhost:3000", "http://localhost:6006"],
   optionsSuccessStatus: 200,
