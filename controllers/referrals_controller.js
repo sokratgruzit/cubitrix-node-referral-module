@@ -1389,9 +1389,28 @@ const binary_comission_count_user = async (interval, referral_address) => {
       {
         $match: {
           staketime: { $gte: interval_ago },
-          // bv_placed: false,
+          bv_placed: false,
         },
       },
+      {
+        $lookup: {
+          from: "accounts",
+          localField: "address",
+          foreignField: "account_owner",
+          as: "joinedAccounts",
+        },
+      },
+      {
+        $unwind: "$joinedAccounts",
+      },
+      {
+        $group: {
+          _id: "$joinedAccounts.address",
+          totalAmount: { $sum: "$amount" },
+        },
+      },
+    ]);
+    const filteredStakesAllTime = await stakes.aggregate([
       {
         $lookup: {
           from: "accounts",
@@ -1444,11 +1463,18 @@ const binary_comission_count_user = async (interval, referral_address) => {
       let document = referral_addresses[i].documents;
       let amount_sum_left = 0;
       let amount_sum_right = 0;
+      let total_staked_amount = 0;
       for (let k = 0; k < document.length; k++) {
         let one_doc = document[k];
         let this_addr_stake = _.find(filteredStakes, {
           _id: one_doc.user_address,
         });
+        let this_addr_stake_all_time = _.find(filteredStakesAllTime, {
+          _id: one_doc.user_address,
+        });
+        if (this_addr_stake_all_time) {
+          total_staked_amount += this_addr_stake_all_time.totalAmount;
+        }
         if (this_addr_stake) {
           if (one_doc.side == "left") {
             amount_sum_left += this_addr_stake.totalAmount;
@@ -1519,6 +1545,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
         amount_sum_right,
         users_sum_right: referral_addresses[i].total_right_users,
         users_sum_left: referral_addresses[i].total_left_users,
+        total_staked_amount,
       });
     }
 
@@ -1559,6 +1586,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
           total_right,
           users_sum_right: one_calc.users_sum_right,
           users_sum_left: one_calc.users_sum_left,
+          total_staked_amount: one_calc.total_staked_amount,
         });
       }
     } else {
