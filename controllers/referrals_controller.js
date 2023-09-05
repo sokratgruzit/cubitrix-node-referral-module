@@ -409,7 +409,6 @@ const get_referral_tree = async (req, res) => {
     let { second_address } = req.body;
 
     let address = req.mainAddress;
-    console.log(address);
 
     if (!address) {
       return main_helper.error_response(res, "you are not logged in");
@@ -1362,6 +1361,30 @@ const binary_comission_count_user = async (interval, referral_address) => {
       ? parseInt(referral_options?.object_value?.binaryData?.flushed_out)
       : 3;
     let bv_options = referral_options?.object_value?.binaryData?.options;
+    //   {
+    //     $match: {
+    //       staketime: { $gte: interval_ago },
+    //       // bv_placed: false,
+    //     },
+    //   },
+    //   {
+    //     $lookup: {
+    //       from: "accounts",
+    //       localField: "address",
+    //       foreignField: "account_owner",
+    //       as: "joinedAccounts",
+    //     },
+    //   },
+    //   {
+    //     $unwind: "$joinedAccounts",
+    //   },
+    //   {
+    //     $group: {
+    //       _id: "$joinedAccounts.address",
+    //       totalAmount: { $sum: "$amount" },
+    //     },
+    //   },
+    // ]);
     const filteredStakes = await stakes.aggregate([
       {
         $match: {
@@ -1401,6 +1424,12 @@ const binary_comission_count_user = async (interval, referral_address) => {
         $group: {
           _id: "$referral_address",
           documents: { $push: "$$ROOT" },
+          total_left_users: {
+            $sum: { $cond: [{ $eq: ["$side", "left"] }, 1, 0] },
+          },
+          total_right_users: {
+            $sum: { $cond: [{ $eq: ["$side", "right"] }, 1, 0] },
+          },
         },
       },
       {
@@ -1488,6 +1517,8 @@ const binary_comission_count_user = async (interval, referral_address) => {
         amount,
         amount_sum_left,
         amount_sum_right,
+        users_sum_right: referral_addresses[i].total_right_users,
+        users_sum_left: referral_addresses[i].total_left_users,
       });
     }
 
@@ -1526,6 +1557,8 @@ const binary_comission_count_user = async (interval, referral_address) => {
           all_amount_sum,
           left_total,
           total_right,
+          users_sum_right: one_calc.users_sum_right,
+          users_sum_left: one_calc.users_sum_left,
         });
       }
     } else {
