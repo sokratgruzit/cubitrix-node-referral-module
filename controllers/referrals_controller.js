@@ -40,7 +40,10 @@ const register_referral = async (req, res) => {
       account_category: "main",
     });
     if (!user_main_addr) {
-      return main_helper.error_response(res, "Sorry , your address isnot recognised");
+      return main_helper.error_response(
+        res,
+        "Sorry , your address isnot recognised"
+      );
     }
     if (checkAddress.length < 1) {
       return main_helper.error_response(res, "referral code not provided");
@@ -70,7 +73,7 @@ const register_referral = async (req, res) => {
       auto_place = await ref_service.calculate_referral_best_place(
         referral_address,
         user_main_addr.address,
-        side,
+        side
       );
     }
     if (
@@ -85,14 +88,14 @@ const register_referral = async (req, res) => {
           address[2],
           user_main_addr.address,
           1,
-          [],
+          []
         );
       } else {
         auto_place_uni = await ref_service.calculate_referral_best_place_uni(
           checkAddress[0],
           user_main_addr.address,
           1,
-          [],
+          []
         );
       }
     }
@@ -118,7 +121,10 @@ const check_referral_available = async (req, res) => {
       account_category: "main",
     });
     if (!user_main_addr) {
-      return main_helper.error_response(res, "Sorry , your address isnot recognised");
+      return main_helper.error_response(
+        res,
+        "Sorry , your address isnot recognised"
+      );
     }
     if (checkAddress.length < 1) {
       return main_helper.error_response(res, "referral code not provided");
@@ -243,10 +249,10 @@ const get_referral_data = async (req, res) => {
     for (let i = 0; i < user_binary.length; i++) {
       if (user_binary[i]?.joinedAccountMetas[0]?.name) {
         user_binary[i].joinedAccountMetas[0].name = hideName(
-          user_binary[i]?.joinedAccountMetas[0]?.name,
+          user_binary[i]?.joinedAccountMetas[0]?.name
         );
         user_binary[i].joinedAccountMetas[0].email = hideName(
-          user_binary[i]?.joinedAccountMetas[0]?.email,
+          user_binary[i]?.joinedAccountMetas[0]?.email
         );
       }
     }
@@ -379,10 +385,10 @@ const get_referral_data_uni = async (req, res) => {
     for (let i = 0; i < user_uni.length; i++) {
       if (user_uni[i]?.joinedAccountMetas[0]?.name) {
         user_uni[i].joinedAccountMetas[0].name = hideName(
-          user_uni[i]?.joinedAccountMetas[0]?.name,
+          user_uni[i]?.joinedAccountMetas[0]?.name
         );
         user_uni[i].joinedAccountMetas[0].email = hideName(
-          user_uni[i]?.joinedAccountMetas[0]?.email,
+          user_uni[i]?.joinedAccountMetas[0]?.email
         );
       }
     }
@@ -403,6 +409,7 @@ const get_referral_tree = async (req, res) => {
     let { second_address } = req.body;
 
     let address = req.mainAddress;
+    console.log(address);
 
     if (!address) {
       return main_helper.error_response(res, "you are not logged in");
@@ -482,17 +489,16 @@ const get_referral_tree = async (req, res) => {
     for (let i = 0; i < check_referral_for_users.length; i++) {
       let documents = check_referral_for_users[i]?.documents;
       for (let k = 0; k < documents.length; k++) {
-        let user_address_this_row = check_referral_for_users[i].documents[k].user_address;
+        let user_address_this_row =
+          check_referral_for_users[i].documents[k].user_address;
         if (!total_users_addresses_array.includes(user_address_this_row)) {
           total_users_addresses_array.push(user_address_this_row);
         }
         if (documents[k]?.joinedAccountMetas[0]?.name) {
-          check_referral_for_users[i].documents[k].joinedAccountMetas[0].name = hideName(
-            documents[k]?.joinedAccountMetas[0]?.name,
-          );
-          check_referral_for_users[i].documents[k].joinedAccountMetas[0].email = hideName(
-            documents[k]?.joinedAccountMetas[0]?.email,
-          );
+          check_referral_for_users[i].documents[k].joinedAccountMetas[0].name =
+            hideName(documents[k]?.joinedAccountMetas[0]?.name);
+          check_referral_for_users[i].documents[k].joinedAccountMetas[0].email =
+            hideName(documents[k]?.joinedAccountMetas[0]?.email);
         }
       }
     }
@@ -500,18 +506,36 @@ const get_referral_tree = async (req, res) => {
     let binary_calcs = null;
     if (total_users_addresses_array.length > 0) {
       if (uni_days == "daily") {
-        uni_calcs = await uni_comission_count_user(1, total_users_addresses_array);
+        uni_calcs = await uni_comission_count_user(
+          1,
+          total_users_addresses_array
+        );
       } else if (uni_days === "monthly") {
-        uni_calcs = await uni_comission_count_user(31, total_users_addresses_array);
+        uni_calcs = await uni_comission_count_user(
+          31,
+          total_users_addresses_array
+        );
       } else if (uni_days === "weekly") {
-        uni_calcs = await uni_comission_count_user(7, total_users_addresses_array);
+        uni_calcs = await uni_comission_count_user(
+          7,
+          total_users_addresses_array
+        );
       }
       if (binary_days == "daily") {
-        binary_calcs = await binary_comission_count_user(1, total_users_addresses_array);
+        binary_calcs = await binary_comission_count_user(
+          1,
+          total_users_addresses_array
+        );
       } else if (binary_days === "monthly") {
-        binary_calcs = await binary_comission_count_user(31, total_users_addresses_array);
+        binary_calcs = await binary_comission_count_user(
+          31,
+          total_users_addresses_array
+        );
       } else if (binary_days === "weekly") {
-        binary_calcs = await binary_comission_count_user(7, total_users_addresses_array);
+        binary_calcs = await binary_comission_count_user(
+          7,
+          total_users_addresses_array
+        );
       }
     }
     let missing_positions = [];
@@ -548,7 +572,9 @@ const get_referral_tree = async (req, res) => {
         if (index < 0) {
           if (_.find(no_position_child, { lvl: one_ref._id, position: k })) {
             this_row.push({ lvl: one_ref._id, position: k, type: "nothing" });
-          } else if (_.find(missing_positions, { lvl: one_ref._id, position: k })) {
+          } else if (
+            _.find(missing_positions, { lvl: one_ref._id, position: k })
+          ) {
             this_row.push({ lvl: one_ref._id, position: k, type: "missing" });
           }
         } else {
@@ -593,7 +619,10 @@ const get_referral_tree = async (req, res) => {
                   type: "nothing",
                 });
               } else if (!itemonefind) {
-                if (binary_max_depth && binary_max_depth + lvlhere == binary_max_lvl) {
+                if (
+                  binary_max_depth &&
+                  binary_max_depth + lvlhere == binary_max_lvl
+                ) {
                   documtnstInner.push({
                     lvl: lvlhere,
                     position: k + 1,
@@ -849,10 +878,15 @@ const uni_comission_count = async (interval, address = null) => {
   });
   let bv = referral_options?.object_value?.binaryData?.lvlOptions;
   // if()
-  let comissions = referral_options?.object_value?.uniData?.lvlOptions?.maxCommPercentage;
-  let maxCommision = referral_options?.object_value?.uniData?.lvlOptions?.maxCommision;
+  let comissions =
+    referral_options?.object_value?.uniData?.lvlOptions?.maxCommPercentage;
+  let maxCommision =
+    referral_options?.object_value?.uniData?.lvlOptions?.maxCommision;
 
-  let interval_ago = moment().subtract(interval, "days").startOf("day").valueOf();
+  let interval_ago = moment()
+    .subtract(interval, "days")
+    .startOf("day")
+    .valueOf();
   interval_ago = interval_ago / 1000;
 
   // await stakes.updateMany(
@@ -935,7 +969,9 @@ const uni_comission_count = async (interval, address = null) => {
           lvl: referral_addresses[k]?.lvl,
           percent: comissions[referral_addresses[k]?.lvl - 1],
           amount_today_reward:
-            maxCommissionLvl > amount_today_award ? amount_today_award : maxCommissionLvl,
+            maxCommissionLvl > amount_today_award
+              ? amount_today_award
+              : maxCommissionLvl,
         });
       }
     }
@@ -987,7 +1023,7 @@ const uni_comission_count = async (interval, address = null) => {
         const [key, value] = keyValueArray[i];
         let accounts_change = await accounts.findOneAndUpdate(
           { address: key },
-          { $inc: { balance: value } },
+          { $inc: { balance: value } }
         );
       }
     }
@@ -1001,7 +1037,7 @@ const uni_comission_count = async (interval, address = null) => {
         $set: {
           uni_placed: true,
         },
-      },
+      }
     );
   }
   // console.log(write_tx);
@@ -1010,7 +1046,10 @@ const uni_comission_count = async (interval, address = null) => {
 
 const binary_comission_count = async (interval, address = null) => {
   try {
-    let interval_ago = moment().subtract(interval, "days").startOf("day").valueOf();
+    let interval_ago = moment()
+      .subtract(interval, "days")
+      .startOf("day")
+      .valueOf();
     interval_ago = interval_ago / 1000;
 
     // let todayStartOfDay = moment().startOf("day").valueOf() / 1000;
@@ -1023,7 +1062,8 @@ const binary_comission_count = async (interval, address = null) => {
       ? referral_options?.object_value?.binaryData?.bv
       : 5000;
     bv = parseInt(bv);
-    let bv_options_flushed_out = referral_options?.object_value?.binaryData?.flushed_out
+    let bv_options_flushed_out = referral_options?.object_value?.binaryData
+      ?.flushed_out
       ? parseInt(referral_options?.object_value?.binaryData?.flushed_out)
       : 3;
     let bv_options = referral_options?.object_value?.binaryData?.options;
@@ -1089,7 +1129,7 @@ const binary_comission_count = async (interval, address = null) => {
     } else {
       for (let i = 0; i < referral_user_addresses.length; i++) {
         addresses_that_staked_this_interval_parent.push(
-          referral_user_addresses[i].referral_address,
+          referral_user_addresses[i].referral_address
         );
       }
     }
@@ -1137,7 +1177,8 @@ const binary_comission_count = async (interval, address = null) => {
       });
       const currentDate = new Date();
       const monthsPassed =
-        (currentDate.getFullYear() - account_check.createdAt.getFullYear()) * 12 +
+        (currentDate.getFullYear() - account_check.createdAt.getFullYear()) *
+          12 +
         (currentDate.getMonth() - account_check.createdAt.getMonth());
 
       let flush_out;
@@ -1156,7 +1197,9 @@ const binary_comission_count = async (interval, address = null) => {
 
         let flush_active = flush_number < 2 ? true : false;
         let flush_left_amount =
-          amount_sum_left > amount_sum_right ? amount_sum_right : amount_sum_left;
+          amount_sum_left > amount_sum_right
+            ? amount_sum_right
+            : amount_sum_left;
         let flush_left = account_check?.flush_out?.left
           ? account_check?.flush_out?.left
           : 0;
@@ -1175,7 +1218,7 @@ const binary_comission_count = async (interval, address = null) => {
           { address: referral_addresses[i]._id },
           {
             flush_out,
-          },
+          }
         );
         amount_sum_left += flush_left;
         amount_sum_right += flush_right;
@@ -1272,7 +1315,7 @@ const binary_comission_count = async (interval, address = null) => {
         let one_tx = all_tx_to_be_done[i];
         let account_update = await accounts.findOneAndUpdate(
           { address: one_tx.address },
-          { $inc: { balance: one_tx.amount } },
+          { $inc: { balance: one_tx.amount } }
         );
       }
     }
@@ -1285,7 +1328,7 @@ const binary_comission_count = async (interval, address = null) => {
           $set: {
             bv_placed: true,
           },
-        },
+        }
       );
     }
 
@@ -1297,7 +1340,10 @@ const binary_comission_count = async (interval, address = null) => {
 };
 const binary_comission_count_user = async (interval, referral_address) => {
   try {
-    let interval_ago = moment().subtract(interval, "days").startOf("day").valueOf();
+    let interval_ago = moment()
+      .subtract(interval, "days")
+      .startOf("day")
+      .valueOf();
     interval_ago = interval_ago / 1000;
     let toCheckReferral = referral_address;
     if (!Array.isArray(referral_address)) {
@@ -1311,7 +1357,8 @@ const binary_comission_count_user = async (interval, referral_address) => {
       ? referral_options?.object_value?.binaryData?.bv
       : 5000;
     bv = parseInt(bv);
-    let bv_options_flushed_out = referral_options?.object_value?.binaryData?.flushed_out
+    let bv_options_flushed_out = referral_options?.object_value?.binaryData
+      ?.flushed_out
       ? parseInt(referral_options?.object_value?.binaryData?.flushed_out)
       : 3;
     let bv_options = referral_options?.object_value?.binaryData?.options;
@@ -1387,7 +1434,8 @@ const binary_comission_count_user = async (interval, referral_address) => {
       });
       const currentDate = new Date();
       const monthsPassed =
-        (currentDate.getFullYear() - account_check.createdAt.getFullYear()) * 12 +
+        (currentDate.getFullYear() - account_check.createdAt.getFullYear()) *
+          12 +
         (currentDate.getMonth() - account_check.createdAt.getMonth());
 
       let flush_out;
@@ -1406,7 +1454,9 @@ const binary_comission_count_user = async (interval, referral_address) => {
 
         let flush_active = flush_number < 2 ? true : false;
         let flush_left_amount =
-          amount_sum_left > amount_sum_right ? amount_sum_right : amount_sum_left;
+          amount_sum_left > amount_sum_right
+            ? amount_sum_right
+            : amount_sum_left;
         let flush_left = account_check?.flush_out?.left
           ? account_check?.flush_out?.left
           : 0;
@@ -1432,15 +1482,13 @@ const binary_comission_count_user = async (interval, referral_address) => {
         amount = amount_sum_left;
       }
 
-      if (amount != 0) {
-        calc_result.push({
-          address: referral_addresses[i]._id,
-          side,
-          amount,
-          amount_sum_left,
-          amount_sum_right,
-        });
-      }
+      calc_result.push({
+        address: referral_addresses[i]._id,
+        side,
+        amount,
+        amount_sum_left,
+        amount_sum_right,
+      });
     }
 
     let returnData;
@@ -1535,9 +1583,13 @@ const uni_comission_count_user = async (interval, referral_address) => {
     }
     let comissions =
       referral_options?.object_value?.uniData?.lvlOptions?.maxCommPercentage;
-    let maxCommision = referral_options?.object_value?.uniData?.lvlOptions?.maxCommision;
+    let maxCommision =
+      referral_options?.object_value?.uniData?.lvlOptions?.maxCommision;
 
-    let interval_ago = moment().subtract(interval, "days").startOf("day").valueOf();
+    let interval_ago = moment()
+      .subtract(interval, "days")
+      .startOf("day")
+      .valueOf();
     let amount = 0;
 
     interval_ago = interval_ago / 1000;
@@ -1591,7 +1643,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
             amount = parseFloat(
               maxCommissionLvl > amount_today_award
                 ? amount_today_award
-                : maxCommissionLvl,
+                : maxCommissionLvl
             );
 
             let addressIndex = _.findIndex(returnData, {
@@ -1625,7 +1677,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
             amount += parseFloat(
               maxCommissionLvl > amount_today_award
                 ? amount_today_award
-                : maxCommissionLvl,
+                : maxCommissionLvl
             );
           }
         }
@@ -1672,7 +1724,7 @@ async function test_change() {
         bv_placed: false,
         uni_placed: false,
       },
-    },
+    }
   );
   console.log("test_change_done");
 }
