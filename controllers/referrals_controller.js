@@ -421,10 +421,6 @@ const get_referral_tree = async (req, res) => {
     let referral_options = await options.findOne({
       key: "referral_binary_bv_options",
     });
-    let referral_options_uni = await options.findOne({
-      key: "referral_uni_options",
-    });
-    let uni_days = referral_options_uni?.object_value?.uniData?.calculated;
     let binary_days = referral_options?.object_value?.binaryData?.calculated;
     let binary_max_lvl = referral_options?.object_value?.binaryData?.maxUsers
       ? referral_options?.object_value?.binaryData?.maxUsers
@@ -502,25 +498,8 @@ const get_referral_tree = async (req, res) => {
         }
       }
     }
-    let uni_calcs = null;
     let binary_calcs = null;
     if (total_users_addresses_array.length > 0) {
-      if (uni_days == "daily") {
-        uni_calcs = await uni_comission_count_user(
-          1,
-          total_users_addresses_array
-        );
-      } else if (uni_days === "monthly") {
-        uni_calcs = await uni_comission_count_user(
-          31,
-          total_users_addresses_array
-        );
-      } else if (uni_days === "weekly") {
-        uni_calcs = await uni_comission_count_user(
-          7,
-          total_users_addresses_array
-        );
-      }
       if (binary_days == "daily") {
         binary_calcs = await binary_comission_count_user(
           1,
@@ -661,7 +640,6 @@ const get_referral_tree = async (req, res) => {
     }
     return main_helper.success_response(res, {
       final_result,
-      uni_calcs,
       binary_calcs,
     });
   } catch (e) {
