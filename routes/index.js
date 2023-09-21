@@ -11,26 +11,35 @@ router.use(cookieParser());
 
 // auto generate referral place
 router.post("/register_referral", referral_controller.register_referral);
-router.post("/check_referral_available", referral_controller.check_referral_available);
+router.post(
+  "/check_referral_available",
+  referral_controller.check_referral_available
+);
 
 router.post("/get_referral_data", referral_controller.get_referral_data);
 router.post("/get_referral_tree", referral_controller.get_referral_tree);
-router.post("/get_referral_data_uni", referral_controller.get_referral_data_uni);
+router.post(
+  "/get_referral_data_uni",
+  referral_controller.get_referral_data_uni
+);
 
 router.post("/get_referral_code", referral_controller.get_referral_code);
 router.post(
   "/get_referral_uni_transactions",
-  referral_controller.get_referral_uni_transactions,
+  referral_controller.get_referral_uni_transactions
 );
 
 router.post(
   "/get_referral_binary_transactions",
-  referral_controller.get_referral_binary_transactions,
+  referral_controller.get_referral_binary_transactions
 );
-router.post("/get_reerral_global_data", referral_controller.get_reerral_global_data);
+router.post(
+  "/get_reerral_global_data",
+  referral_controller.get_reerral_global_data
+);
 router.post(
   "/get_referral_parent_address",
-  referral_controller.get_referral_parent_address,
+  referral_controller.get_referral_parent_address
 );
 router.post("/get_referral_options", referral_controller.get_referral_options);
 router.post("/binary_comission_count_user", async (req, res) => {
@@ -42,12 +51,16 @@ router.post("/binary_comission_count_user", async (req, res) => {
   let referral_options = await options.findOne({
     key: "referral_binary_bv_options",
   });
-  let binary_bv_dayes = referral_options?.object_value?.binaryData?.calculated;
-
+  let binary_bv_dayes =
+    referral_options?.object_value?.binaryData?.calculated ?? "monthly";
+  console.log(binary_bv_dayes);
   if (binary_bv_dayes == "daily") {
     results = await referral_controller.binary_comission_count_user(1, address);
   } else if (binary_bv_dayes === "monthly") {
-    results = await referral_controller.binary_comission_count_user(daysPassed, address);
+    results = await referral_controller.binary_comission_count_user(
+      daysPassed,
+      address
+    );
   } else if (binary_bv_dayes === "weekly") {
     results = await referral_controller.binary_comission_count_user(7, address);
   }
@@ -64,7 +77,10 @@ router.post("/uni_comission_count_user", async (req, res) => {
   if (uni_days == "daily") {
     results = await referral_controller.uni_comission_count_user(1, address);
   } else if (uni_days === "monthly") {
-    results = await referral_controller.uni_comission_count_user(daysPassed, address);
+    results = await referral_controller.uni_comission_count_user(
+      daysPassed,
+      address
+    );
   } else if (uni_days === "weekly") {
     results = await referral_controller.uni_comission_count_user(7, address);
   }
