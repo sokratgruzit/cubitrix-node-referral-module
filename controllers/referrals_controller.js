@@ -6,6 +6,7 @@ const {
   transactions,
   options,
   stakes,
+  rates,
 } = require("@cubitrix/models");
 const main_helper = require("../helpers/index");
 const global_helper = require("../helpers/global_helper");
@@ -413,10 +414,6 @@ const get_referral_tree = async (req, res) => {
     let referral_options = await options.findOne({
       key: "referral_binary_bv_options",
     });
-    let referral_options_uni = await options.findOne({
-      key: "referral_uni_options",
-    });
-    let uni_days = referral_options_uni?.object_value?.uniData?.calculated;
     let binary_days = referral_options?.object_value?.binaryData?.calculated;
     let binary_max_lvl = referral_options?.object_value?.binaryData?.maxUsers
       ? referral_options?.object_value?.binaryData?.maxUsers
@@ -495,16 +492,8 @@ const get_referral_tree = async (req, res) => {
         }
       }
     }
-    let uni_calcs = null;
     let binary_calcs = null;
     if (total_users_addresses_array.length > 0) {
-      if (uni_days == "daily") {
-        uni_calcs = await uni_comission_count_user(1, total_users_addresses_array);
-      } else if (uni_days === "monthly") {
-        uni_calcs = await uni_comission_count_user(31, total_users_addresses_array);
-      } else if (uni_days === "weekly") {
-        uni_calcs = await uni_comission_count_user(7, total_users_addresses_array);
-      }
       if (binary_days == "daily") {
         binary_calcs = await binary_comission_count_user(1, total_users_addresses_array);
       } else if (binary_days === "monthly") {
@@ -631,7 +620,6 @@ const get_referral_tree = async (req, res) => {
     }
     return main_helper.success_response(res, {
       final_result,
-      uni_calcs,
       binary_calcs,
     });
   } catch (e) {
@@ -848,10 +836,16 @@ const uni_comission_count = async (interval, address = null) => {
   });
   let bv = referral_options?.object_value?.binaryData?.lvlOptions;
   // if()
-  let comissions = referral_options?.object_value?.uniData?.lvlOptions?.maxCommPercentage;
-  let maxCommision = referral_options?.object_value?.uniData?.lvlOptions?.maxCommision;
-
-  let interval_ago = moment().subtract(interval, "days").startOf("day").valueOf();
+  let comissions =
+    referral_options?.object_value?.uniData?.lvlOptions?.maxCommPercentage;
+  let maxCommision =
+    referral_options?.object_value?.uniData?.lvlOptions?.maxCommision;
+  let atr_usd_rates = await get_rates();
+  let atr_usd = atr_usd_rates?.atr?.usd;
+  let interval_ago = moment()
+    .subtract(interval, "days")
+    .startOf("day")
+    .valueOf();
   interval_ago = interval_ago / 1000;
 
   // await stakes.updateMany(
@@ -888,7 +882,7 @@ const uni_comission_count = async (interval, address = null) => {
     {
       $group: {
         _id: "$joinedAccounts.address",
-        totalAmount: { $sum: "$amount" },
+        totalAmount: { $sum: { $multiply: ["$amount", "$A1_price"] } },
       },
     },
   ]);
@@ -922,7 +916,7 @@ const uni_comission_count = async (interval, address = null) => {
     for (let k = 0; k < referral_addresses.length; k++) {
       if (referral_addresses[k].user_address == filteredStakes[i]._id) {
         let amount_today_award =
-          (filteredStakes[i].totalAmount *
+          ((filteredStakes[i].totalAmount / atr_usd) *
             parseFloat(comissions[referral_addresses[k]?.lvl - 1])) /
           100;
         let maxCommissionLvl = maxCommision[referral_addresses[k]?.lvl - 1];
@@ -930,7 +924,7 @@ const uni_comission_count = async (interval, address = null) => {
         comissions_of_addresses.push({
           address: referral_addresses[k].user_address,
           referral_address: referral_addresses[k].referral_address,
-          amount_today: filteredStakes[i].totalAmount,
+          amount_today: filteredStakes[i].totalAmount / atr_usd,
           lvl: referral_addresses[k]?.lvl,
           percent: comissions[referral_addresses[k]?.lvl - 1],
           amount_today_reward:
@@ -1026,6 +1020,8 @@ const binary_comission_count = async (interval, address = null) => {
       ? parseInt(referral_options?.object_value?.binaryData?.flushed_out)
       : 3;
     let bv_options = referral_options?.object_value?.binaryData?.options;
+    let atr_usd_rates = await get_rates();
+    let atr_usd = atr_usd_rates?.atr?.usd;
     const filteredStakes = await stakes.aggregate([
       {
         $match: {
@@ -1048,7 +1044,7 @@ const binary_comission_count = async (interval, address = null) => {
       {
         $group: {
           _id: "$joinedAccounts.address",
-          totalAmount: { $sum: "$amount" },
+          totalAmount: { $sum: { $multiply: ["$amount", "$A1_price"] } },
         },
       },
       {
@@ -1124,9 +1120,9 @@ const binary_comission_count = async (interval, address = null) => {
         });
         if (this_addr_stake) {
           if (one_doc.side == "left") {
-            amount_sum_left += this_addr_stake.totalAmount;
+            amount_sum_left += this_addr_stake.totalAmount / atr_usd;
           } else {
-            amount_sum_right += this_addr_stake.totalAmount;
+            amount_sum_right += this_addr_stake.totalAmount / atr_usd;
           }
         }
       }
@@ -1314,6 +1310,8 @@ const binary_comission_count_user = async (interval, referral_address) => {
       ? parseInt(referral_options?.object_value?.binaryData?.flushed_out)
       : 3;
     let bv_options = referral_options?.object_value?.binaryData?.options;
+    let atr_usd_rates = await get_rates();
+    let atr_usd = atr_usd_rates?.atr?.usd;
     //   {
     //     $match: {
     //       staketime: { $gte: interval_ago },
@@ -1342,9 +1340,28 @@ const binary_comission_count_user = async (interval, referral_address) => {
       {
         $match: {
           staketime: { $gte: interval_ago },
-          // bv_placed: false,
+          bv_placed: false,
         },
       },
+      {
+        $lookup: {
+          from: "accounts",
+          localField: "address",
+          foreignField: "account_owner",
+          as: "joinedAccounts",
+        },
+      },
+      {
+        $unwind: "$joinedAccounts",
+      },
+      {
+        $group: {
+          _id: "$joinedAccounts.address",
+          totalAmount: { $sum: { $multiply: ["$amount", "$A1_price"] } },
+        },
+      },
+    ]);
+    const filteredStakesAllTime = await stakes.aggregate([
       {
         $lookup: {
           from: "accounts",
@@ -1397,16 +1414,23 @@ const binary_comission_count_user = async (interval, referral_address) => {
       let document = referral_addresses[i].documents;
       let amount_sum_left = 0;
       let amount_sum_right = 0;
+      let total_staked_amount = 0;
       for (let k = 0; k < document.length; k++) {
         let one_doc = document[k];
         let this_addr_stake = _.find(filteredStakes, {
           _id: one_doc.user_address,
         });
+        let this_addr_stake_all_time = _.find(filteredStakesAllTime, {
+          _id: one_doc.user_address,
+        });
+        if (this_addr_stake_all_time) {
+          total_staked_amount += this_addr_stake_all_time.totalAmount;
+        }
         if (this_addr_stake) {
           if (one_doc.side == "left") {
-            amount_sum_left += this_addr_stake.totalAmount;
+            amount_sum_left += this_addr_stake.totalAmount / atr_usd;
           } else {
-            amount_sum_right += this_addr_stake.totalAmount;
+            amount_sum_right += this_addr_stake.totalAmount.atr_usd;
           }
         }
       }
@@ -1469,6 +1493,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
         amount_sum_right,
         users_sum_right: referral_addresses[i].total_right_users,
         users_sum_left: referral_addresses[i].total_left_users,
+        total_staked_amount,
       });
     }
 
@@ -1509,6 +1534,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
           total_right,
           users_sum_right: one_calc.users_sum_right,
           users_sum_left: one_calc.users_sum_left,
+          total_staked_amount: one_calc.total_staked_amount,
         });
       }
     } else {
@@ -1561,6 +1587,8 @@ const uni_comission_count_user = async (interval, referral_address) => {
     });
     let bv = referral_options?.object_value?.binaryData?.lvlOptions;
     let toCheckReferral = referral_address;
+    let atr_usd_rates = await get_rates();
+    let atr_usd = atr_usd_rates?.atr?.usd;
     if (!Array.isArray(referral_address)) {
       toCheckReferral = [referral_address];
     }
@@ -1593,7 +1621,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
       {
         $group: {
           _id: "$joinedAccounts.address",
-          totalAmount: { $sum: "$amount" },
+          totalAmount: { $sum: { $multiply: ["$amount", "$A1_price"] } },
         },
       },
     ]);
@@ -1614,7 +1642,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
         for (let i = 0; i < filteredStakes.length; i++) {
           if (referral_addresses[k].user_address == filteredStakes[i]._id) {
             let amount_today_award =
-              (filteredStakes[i].totalAmount *
+              ((filteredStakes[i].totalAmount / atr_usd) *
                 parseFloat(comissions[referral_addresses[k]?.lvl - 1])) /
               100;
             let maxCommissionLvl = maxCommision[referral_addresses[k]?.lvl - 1];
@@ -1648,7 +1676,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
         for (let k = 0; k < referral_addresses.length; k++) {
           if (referral_addresses[k].user_address == filteredStakes[i]._id) {
             let amount_today_award =
-              (filteredStakes[i].totalAmount *
+              ((filteredStakes[i].totalAmount / atr_usd) *
                 parseFloat(comissions[referral_addresses[k]?.lvl - 1])) /
               100;
             let maxCommissionLvl = maxCommision[referral_addresses[k]?.lvl - 1];
@@ -1706,6 +1734,10 @@ async function test_change() {
     },
   );
   console.log("test_change_done");
+}
+
+async function get_rates() {
+  return await rates.findOne({}, { atr: 1, _id: 0 });
 }
 
 module.exports = {
