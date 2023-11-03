@@ -234,7 +234,7 @@ const check_free_space_for_user = async (referral_code, side, binary_max_lvl) =>
         position: parseInt(parts2[1]),
       });
       if (check_manual_referral_used) {
-        return "code is already used";
+        return "Code is already used";
       } else {
         return [
           {

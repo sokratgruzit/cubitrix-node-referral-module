@@ -26,47 +26,56 @@ const mongoose = require("mongoose");
 
 const register_referral = async (req, res) => {
   try {
-    let { referral_address, side } = req.body;
+    let { referral_address, side, user_address } = req.body;
 
-    let user_address = req.address;
+    // let user_address = req.address;
+    user_address.toLowerCase();
+    referral_address.toLowerCase();
 
     if (!user_address) {
-      return main_helper.error_response(res, "you are not logged in");
+      return main_helper.error_response(res, "You are not logged in");
     }
 
-    referral_address = referral_address.toLowerCase();
     let checkAddress = referral_address.split("_");
     let user_main_addr = await accounts.findOne({
       account_owner: user_address,
       account_category: "main",
     });
+    
     if (!user_main_addr) {
-      return main_helper.error_response(res, "Sorry , your address isnot recognised");
+      return main_helper.error_response(res, "Sorry, your address is not recognised");
     }
+
     if (checkAddress.length < 1) {
-      return main_helper.error_response(res, "referral code not provided");
+      return main_helper.error_response(res, "Referral code not provided");
     }
+
     let account = await accounts.findOne({
       address: checkAddress[0],
       account_category: "main",
     });
+
     if (!account) {
-      return main_helper.error_response(res, "referral code incorrect");
+      return main_helper.error_response(res, "Referral code incorrect");
     }
+    
     if (
       checkAddress[0] == user_main_addr.address ||
       account?.tier?.value == "Novice Navigator"
     ) {
-      return main_helper.error_response(res, "incorrect address");
+      return main_helper.error_response(res, "Incorrect address");
     }
-
+      
     let user_already_have_referral_code = await referral_binary_users.findOne({
       user_address: user_main_addr.address,
     });
+
     let user_already_have_referral_code_uni = await referral_uni_users.findOne({
       user_address: user_main_addr.address,
     });
+
     let auto_place, auto_place_uni;
+
     if (!user_already_have_referral_code) {
       auto_place = await ref_service.calculate_referral_best_place(
         referral_address,
@@ -74,10 +83,11 @@ const register_referral = async (req, res) => {
         side,
       );
     }
+    
     if (
       !user_already_have_referral_code_uni &&
       auto_place &&
-      auto_place != "code is already used"
+      auto_place != "Code is already used"
     ) {
       if (checkAddress.length > 1) {
         let decrypted = ref_service.decrypt(checkAddress[1]);
@@ -108,6 +118,10 @@ const check_referral_available = async (req, res) => {
   try {
     let { referral_address } = req.body;
     let user_address = req.address;
+    //test
+    // let referral_address = "0xa3403975861b601ae111b4eeafba94060a58d0ca";
+    // let user_address = "0x4f0bee84539fcb285f998d532488e1ad3d8f7503";
+    //end test
     if (!user_address) {
       return main_helper.error_response(res, "you are not logged in");
     }
@@ -118,6 +132,7 @@ const check_referral_available = async (req, res) => {
       account_owner: user_address,
       account_category: "main",
     });
+    
     if (!user_main_addr) {
       return main_helper.error_response(res, "Sorry , your address isnot recognised");
     }
@@ -1290,6 +1305,7 @@ const binary_comission_count = async (interval, address = null) => {
     return false;
   }
 };
+
 const binary_comission_count_user = async (interval, referral_address) => {
   try {
     let interval_ago = moment().subtract(interval, "days").startOf("day").valueOf();
@@ -1696,6 +1712,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
     return false;
   }
 };
+
 // const admin_setup = async (req, res) => {
 //   try {
 //     let referral_options = req.body;

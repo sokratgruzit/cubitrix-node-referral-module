@@ -10,6 +10,7 @@ app.use(express.json({ extended: true }));
 app.use(cookieParser());
 
 const isAuthenticated = require("./middleware/IsAuthenticated");
+const { check_referral_available } = require("./controllers/referrals_controller");
 
 app.use(isAuthenticated);
 
@@ -45,6 +46,8 @@ app.use(express.static(root));
 //       'index.html', { root }
 //    );
 // });
+
+//check_referral_available();
 
 async function start() {
   const PORT = process.env.PORT || 4000;
