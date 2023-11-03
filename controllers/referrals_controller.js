@@ -26,9 +26,9 @@ const mongoose = require("mongoose");
 
 const register_referral = async (req, res) => {
   try {
-    let { referral_address, side, user_address } = req.body;
-
-    // let user_address = req.address;
+    let { referral_address, side } = req.body;
+    let user_address = req.address;
+    
     user_address.toLowerCase();
     referral_address.toLowerCase();
 
@@ -122,11 +122,14 @@ const check_referral_available = async (req, res) => {
     // let referral_address = "0xa3403975861b601ae111b4eeafba94060a58d0ca";
     // let user_address = "0x4f0bee84539fcb285f998d532488e1ad3d8f7503";
     //end test
+
     if (!user_address) {
       return main_helper.error_response(res, "you are not logged in");
     }
+
     referral_address = referral_address.toLowerCase();
     user_address = user_address.toLowerCase();
+
     let checkAddress = referral_address.split("_");
     let user_main_addr = await accounts.findOne({
       account_owner: user_address,
@@ -134,18 +137,22 @@ const check_referral_available = async (req, res) => {
     });
     
     if (!user_main_addr) {
-      return main_helper.error_response(res, "Sorry , your address isnot recognised");
+      return main_helper.error_response(res, "Sorry, your address is not recognised");
     }
+
     if (checkAddress.length < 1) {
       return main_helper.error_response(res, "referral code not provided");
     }
+
     let account = await accounts.findOne({
       address: checkAddress[0],
       account_category: "main",
     });
+
     if (!account) {
       return main_helper.error_response(res, "referral code incorrect");
     }
+
     if (
       checkAddress[0] == user_main_addr.address ||
       account?.tier?.value == "Novice Navigator"
