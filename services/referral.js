@@ -27,6 +27,7 @@ const calculate_referral_best_place = async (
     let referral_options = await options.findOne({
       key: "referral_binary_bv_options",
     });
+    
     let binary_max_lvl = referral_options?.object_value?.binaryData?.maxUsers
       ? referral_options?.object_value?.binaryData?.maxUsers
       : 11;
@@ -227,12 +228,13 @@ const check_free_space_for_user = async (referral_code, side, binary_max_lvl) =>
       const hashedSecretKey = hashSecretKey(secretKey);
       const decryptedText = decrypt(parts[1], hashedSecretKey);
       const parts2 = decryptedText.split("_");
-      console.log(parts2);
+      
       let check_manual_referral_used = await referral_binary_users.findOne({
         referral_address: referral_address,
         lvl: parseInt(parts2[0]),
         position: parseInt(parts2[1]),
       });
+
       if (check_manual_referral_used) {
         return "code is already used";
       } else {
@@ -255,6 +257,7 @@ const check_free_space_for_user = async (referral_code, side, binary_max_lvl) =>
         },
       },
     ]);
+    
     let max_referral_lvl_for_user_used = 0;
     let freespaces = [];
     for (let i = 0; i < check_referral_for_users.length; i++) {
