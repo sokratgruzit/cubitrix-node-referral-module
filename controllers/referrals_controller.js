@@ -1390,6 +1390,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
         },
       },
     ]);
+    
     const filteredStakesAllTime = await stakes.aggregate([
       {
         $lookup: {
@@ -1409,10 +1410,13 @@ const binary_comission_count_user = async (interval, referral_address) => {
         },
       },
     ]);
+    
     let addresses_that_staked_this_interval = [];
+
     for (let i = 0; i < filteredStakes.length; i++) {
       addresses_that_staked_this_interval.push(filteredStakes[i]._id);
     }
+    
     let referral_addresses = await referral_binary_users.aggregate([
       {
         $match: {
@@ -1437,7 +1441,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
         },
       },
     ]);
-
+    
     let calc_result = [];
     for (let i = 0; i < referral_addresses.length; i++) {
       let document = referral_addresses[i].documents;
@@ -1468,6 +1472,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
         address: referral_addresses[i]._id,
       });
       const currentDate = new Date();
+    
       const monthsPassed =
         (currentDate.getFullYear() - account_check.createdAt.getFullYear()) * 12 +
         (currentDate.getMonth() - account_check.createdAt.getMonth());

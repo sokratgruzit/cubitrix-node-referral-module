@@ -51,8 +51,9 @@ router.post("/binary_comission_count_user", async (req, res) => {
   let referral_options = await options.findOne({
     key: "referral_binary_bv_options",
   });
-  let binary_bv_dayes =
-    referral_options?.object_value?.binaryData?.calculated ?? "monthly";
+  
+  let binary_bv_dayes = referral_options?.object_value?.binaryData?.calculated ?? "monthly";
+  
   if (binary_bv_dayes == "daily") {
     results = await referral_controller.binary_comission_count_user(1, address);
   } else if (binary_bv_dayes === "monthly") {
