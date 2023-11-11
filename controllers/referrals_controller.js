@@ -535,15 +535,14 @@ const get_referral_tree = async (req, res) => {
 
     if (total_users_addresses_array.length > 0) {
       if (binary_days == "daily") {
-        binary_calcs = await binary_comission_count_user(1, total_users_addresses_array);
+        binary_calcs = await binary_comission_count_user(1, total_users_addresses_array, address);
       } else if (binary_days === "monthly") {
-        binary_calcs = await binary_comission_count_user(31, total_users_addresses_array);
+        binary_calcs = await binary_comission_count_user(31, total_users_addresses_array, address);
       } else if (binary_days === "weekly") {
-        binary_calcs = await binary_comission_count_user(7, total_users_addresses_array);
+        binary_calcs = await binary_comission_count_user(7, total_users_addresses_array, address);
       }
     }
 
-    //console.log(binary_calcs)
     let missing_positions = [];
     let no_position_child = [];
     let final_result = [];
@@ -1350,7 +1349,7 @@ const binary_comission_count = async (interval, address = null) => {
   }
 };
 
-const binary_comission_count_user = async (interval, referral_address) => {
+const binary_comission_count_user = async (interval, referral_address, main_address) => {
   try {
     let interval_ago = moment().subtract(interval, "days").startOf("day").valueOf();
     interval_ago = interval_ago / 1000;
@@ -1423,28 +1422,30 @@ const binary_comission_count_user = async (interval, referral_address) => {
       },
     ]);
     
-    const filteredStakesAllTime = await stakes.aggregate([
-      {
-        $lookup: {
-          from: "accounts",
-          localField: "address",
-          foreignField: "account_owner",
-          as: "joinedAccounts",
-        },
-      },
-      {
-        $unwind: "$joinedAccounts",
-      },
-      {
-        $group: {
-          _id: "$joinedAccounts.address",
-          totalAmount: { $sum: "$amount" },
-          // totalAmount: { $first: "$joinedAccounts.stakedTotal" }
-        },
-      },
-    ]);
+    // const filteredStakesAllTime = await stakes.aggregate([
+    //   {
+    //     $lookup: {
+    //       from: "accounts",
+    //       localField: "address",
+    //       foreignField: "account_owner",
+    //       as: "joinedAccounts",
+    //     },
+    //   },
+    //   {
+    //     $unwind: "$joinedAccounts",
+    //   },
+    //   {
+    //     $group: {
+    //       _id: "$joinedAccounts.address",
+    //       totalAmount: { $sum: "$amount" }
+    //     },
+    //   },
+    // ]);
 
-    //console.log(filteredStakesAllTime)
+    let current_user_acc = await accounts.find({ 
+      address: main_address,
+      account_category: "main"
+    });
 
     let addresses_that_staked_this_interval = [];
 
@@ -1489,12 +1490,16 @@ const binary_comission_count_user = async (interval, referral_address) => {
           _id: one_doc.user_address,
         });
 
-        let this_addr_stake_all_time = _.find(filteredStakesAllTime, {
-          _id: one_doc.user_address,
-        });
+        // let this_addr_stake_all_time = _.find(filteredStakesAllTime, {
+        //   _id: one_doc.user_address,
+        // });
 
-        if (this_addr_stake_all_time) {
-          total_staked_amount = this_addr_stake_all_time.totalAmount;
+        // if (this_addr_stake_all_time) {
+        //   total_staked_amount += this_addr_stake_all_time.totalAmount;
+        // }
+
+        if (current_user_acc && current_user_acc.length > 0) {
+          total_staked_amount = current_user_acc[0].stakedTotal;
         }
         
         if (this_addr_stake) {
