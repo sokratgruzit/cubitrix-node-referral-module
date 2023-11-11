@@ -432,6 +432,7 @@ const get_referral_tree = async (req, res) => {
     let { second_address } = req.body;
 
     let address = req.mainAddress;
+    address.toLowerCase();
 
     if (!address) {
       return main_helper.error_response(res, "you are not logged in");
@@ -458,8 +459,10 @@ const get_referral_tree = async (req, res) => {
         referral_address: address,
         user_address: second_address,
       });
+
       let max_level_for_new_tree = binary_max_lvl - checkAddress?.lvl;
       binary_max_depth = checkAddress?.lvl;
+
       if (max_level_for_new_tree < maxLevel) {
         maxLevel = max_level_for_new_tree;
       }
@@ -503,25 +506,33 @@ const get_referral_tree = async (req, res) => {
     check_referral_for_users.sort((a, b) => {
       return a._id - b._id;
     });
+
     let total_users_addresses_array = [address];
+    
     for (let i = 0; i < check_referral_for_users.length; i++) {
       let documents = check_referral_for_users[i]?.documents;
+
       for (let k = 0; k < documents.length; k++) {
         let user_address_this_row = check_referral_for_users[i].documents[k].user_address;
+
         if (!total_users_addresses_array.includes(user_address_this_row)) {
           total_users_addresses_array.push(user_address_this_row);
         }
+
         if (documents[k]?.joinedAccountMetas[0]?.name) {
           check_referral_for_users[i].documents[k].joinedAccountMetas[0].name = hideName(
             documents[k]?.joinedAccountMetas[0]?.name,
           );
+
           check_referral_for_users[i].documents[k].joinedAccountMetas[0].email = hideName(
             documents[k]?.joinedAccountMetas[0]?.email,
           );
         }
       }
     }
+
     let binary_calcs = null;
+
     if (total_users_addresses_array.length > 0) {
       if (binary_days == "daily") {
         binary_calcs = await binary_comission_count_user(1, total_users_addresses_array);
@@ -531,12 +542,16 @@ const get_referral_tree = async (req, res) => {
         binary_calcs = await binary_comission_count_user(7, total_users_addresses_array);
       }
     }
+
+    //console.log(binary_calcs)
     let missing_positions = [];
     let no_position_child = [];
     let final_result = [];
+
     for (let i = 0; i < check_referral_for_users.length; i++) {
       let one_ref = check_referral_for_users[i];
       let max_pow_on_this_row = Math.pow(2, one_ref._id);
+
       if (one_ref.documents.length < max_pow_on_this_row) {
         for (let k = 1; k <= max_pow_on_this_row; k++) {
           if (!_.find(one_ref.documents, { position: k })) {
@@ -544,10 +559,12 @@ const get_referral_tree = async (req, res) => {
               lvl: one_ref._id,
               position: k,
             });
+
             no_position_child.push({
               lvl: one_ref._id + 1,
               position: k * 2 - 1,
             });
+
             no_position_child.push({
               lvl: one_ref._id + 1,
               position: k * 2,
@@ -556,12 +573,15 @@ const get_referral_tree = async (req, res) => {
         }
       }
     }
+
     for (let i = 0; i < check_referral_for_users.length; i++) {
       let one_ref = check_referral_for_users[i];
       let max_pow_on_this_row = Math.pow(2, one_ref._id);
       let this_row = [];
+
       for (let k = 1; k <= max_pow_on_this_row; k++) {
         let index = _.findIndex(one_ref.documents, { position: k });
+
         if (index < 0) {
           if (_.find(no_position_child, { lvl: one_ref._id, position: k })) {
             this_row.push({ lvl: one_ref._id, position: k, type: "nothing" });
@@ -572,11 +592,13 @@ const get_referral_tree = async (req, res) => {
           this_row.push(one_ref.documents[index]);
         }
       }
+
       final_result.push({
         lvl: one_ref._id,
         documents: this_row,
       });
     }
+
     if (check_referral_for_users.length < maxLevel) {
       for (
         let i = check_referral_for_users.length;
@@ -586,11 +608,13 @@ const get_referral_tree = async (req, res) => {
         let lvlhere = i + 1;
         let maxpow = Math.pow(2, lvlhere);
         let documtnstInner = [];
+
         for (let k = 0; k < maxpow; k++) {
           let this_position_check = _.find(final_result, {
             lvl: lvlhere,
             position: k + 1,
           });
+
           if (!this_position_check) {
             let lastlvlitem = _.find(final_result, { lvl: lvlhere - 1 });
 
@@ -599,10 +623,12 @@ const get_referral_tree = async (req, res) => {
                 type: "missing",
                 position: Math.ceil((k + 1) / 2),
               });
+
               let itemonefindnothing = _.find(lastlvlitem.documents, {
                 type: "nothing",
                 position: Math.ceil((k + 1) / 2),
               });
+
               if (itemonefindnothing) {
                 documtnstInner.push({
                   lvl: lvlhere,
@@ -639,6 +665,7 @@ const get_referral_tree = async (req, res) => {
             }
           }
         }
+
         if (documtnstInner.length > 0) {
           final_result.push({
             lvl: lvlhere,
@@ -1080,6 +1107,7 @@ const binary_comission_count = async (interval, address = null) => {
         $sort: { staketime: -1 },
       },
     ]);
+
     const filteredStakesIds = await stakes.aggregate([
       {
         $match: {
@@ -1095,9 +1123,11 @@ const binary_comission_count = async (interval, address = null) => {
 
     let addresses_that_staked_this_interval = [];
     let stakeIds = [];
+
     for (let i = 0; i < filteredStakes.length; i++) {
       addresses_that_staked_this_interval.push(filteredStakes[i]._id);
     }
+
     for (let i = 0; i < filteredStakesIds.length; i++) {
       stakeIds.push(filteredStakesIds[i]._id);
     }
@@ -1319,6 +1349,7 @@ const binary_comission_count = async (interval, address = null) => {
     return false;
   }
 };
+
 const binary_comission_count_user = async (interval, referral_address) => {
   try {
     let interval_ago = moment().subtract(interval, "days").startOf("day").valueOf();
@@ -1365,6 +1396,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
     //     },
     //   },
     // ]);
+    
     const filteredStakes = await stakes.aggregate([
       {
         $match: {
@@ -1407,10 +1439,13 @@ const binary_comission_count_user = async (interval, referral_address) => {
         $group: {
           _id: "$joinedAccounts.address",
           totalAmount: { $sum: "$amount" },
+          // totalAmount: { $first: "$joinedAccounts.stakedTotal" }
         },
       },
     ]);
-    
+
+    //console.log(filteredStakesAllTime)
+
     let addresses_that_staked_this_interval = [];
 
     for (let i = 0; i < filteredStakes.length; i++) {
@@ -1453,17 +1488,20 @@ const binary_comission_count_user = async (interval, referral_address) => {
         let this_addr_stake = _.find(filteredStakes, {
           _id: one_doc.user_address,
         });
+
         let this_addr_stake_all_time = _.find(filteredStakesAllTime, {
           _id: one_doc.user_address,
         });
+
         if (this_addr_stake_all_time) {
-          total_staked_amount += this_addr_stake_all_time.totalAmount;
+          total_staked_amount = this_addr_stake_all_time.totalAmount;
         }
+        
         if (this_addr_stake) {
           if (one_doc.side == "left") {
             amount_sum_left += this_addr_stake.totalAmount / atr_usd;
           } else {
-            amount_sum_right += this_addr_stake.totalAmount.atr_usd;
+            amount_sum_right += this_addr_stake.totalAmount / atr_usd;
           }
         }
       }
@@ -1730,6 +1768,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
     return false;
   }
 };
+
 // const admin_setup = async (req, res) => {
 //   try {
 //     let referral_options = req.body;
