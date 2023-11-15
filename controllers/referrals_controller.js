@@ -1178,9 +1178,9 @@ const binary_comission_count = async (interval, address = null) => {
         });
         if (this_addr_stake) {
           if (one_doc.side == "left") {
-            amount_sum_left += this_addr_stake.totalAmount / atr_usd;
+            amount_sum_left += this_addr_stake.totalAmount;
           } else {
-            amount_sum_right += this_addr_stake.totalAmount / atr_usd;
+            amount_sum_right += this_addr_stake.totalAmount;
           }
         }
       }
@@ -1306,7 +1306,8 @@ const binary_comission_count = async (interval, address = null) => {
         write_tx.push({
           from: oneTx.side,
           to: oneTx.address,
-          amount: oneTx.amount,
+          amount: oneTx.amount / atr_usd,
+          // amount: oneTx.amount,
           tx_hash,
           tx_type: "bonus",
           tx_currency: "ether",
@@ -1325,7 +1326,7 @@ const binary_comission_count = async (interval, address = null) => {
         let one_tx = all_tx_to_be_done[i];
         let account_update = await accounts.findOneAndUpdate(
           { address: one_tx.address },
-          { $inc: { balance: one_tx.amount } },
+          { $inc: { balance: one_tx.amount / atr_usd } },
         );
       }
     }
@@ -1502,6 +1503,7 @@ const binary_comission_count_user = async (interval, referral_address, main_addr
           total_staked_amount = current_user_acc[0].stakedTotal;
         }
         
+        // Check why we convert it to tokens again
         if (this_addr_stake) {
           if (one_doc.side == "left") {
             amount_sum_left += this_addr_stake.totalAmount / atr_usd;
@@ -1509,6 +1511,7 @@ const binary_comission_count_user = async (interval, referral_address, main_addr
             amount_sum_right += this_addr_stake.totalAmount / atr_usd;
           }
         }
+        // End of checking to tokens conversion
       }
       let side, amount;
       let account_check = await accounts.findOne({
