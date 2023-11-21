@@ -449,7 +449,7 @@ const get_referral_tree = async (req, res) => {
       ? referral_options?.object_value?.binaryData?.maxUsers
       : 11;
     let binary_max_depth = null;
-
+    console.log(binary_days)
     if (!second_address) {
       second_address = address;
     }
@@ -535,11 +535,11 @@ const get_referral_tree = async (req, res) => {
 
     if (total_users_addresses_array.length > 0) {
       if (binary_days == "daily") {
-        binary_calcs = await binary_comission_count_user(1, total_users_addresses_array, address);
+        binary_calcs = await binary_comission_count_user(1, total_users_addresses_array);
       } else if (binary_days === "monthly") {
-        binary_calcs = await binary_comission_count_user(31, total_users_addresses_array, address);
+        binary_calcs = await binary_comission_count_user(31, total_users_addresses_array);
       } else if (binary_days === "weekly") {
-        binary_calcs = await binary_comission_count_user(7, total_users_addresses_array, address);
+        binary_calcs = await binary_comission_count_user(7, total_users_addresses_array);
       }
     }
 
@@ -673,6 +673,21 @@ const get_referral_tree = async (req, res) => {
         }
       }
     }
+
+    // let current_user_acc = await accounts.find({ 
+    //   address,
+    //   account_category: "main"
+    // });
+
+    // if (current_user_acc && current_user_acc.length > 0) {
+    //   let total_staked_amount = current_user_acc[0].stakedTotal;
+      
+    //   binary_calcs[0] = {
+    //     ...binary_calcs[0],
+    //     total_staked_amount
+    //   };
+    // }
+
     return main_helper.success_response(res, {
       final_result,
       binary_calcs,
@@ -754,17 +769,21 @@ const get_referral_binary_transactions = async (req, res) => {
   }
 };
 
-const get_reerral_global_data = async (req, res) => {
+const get_referral_global_data = async (req, res) => {
   try {
     let { limit, page } = req.body;
 
     let address = req.mainAddress;
+    address.toLowerCase();
+
     let uni_users = await referral_uni_users.count({
       referral_address: address,
     });
+
     let binary_users = await referral_binary_users.count({
       referral_address: address,
     });
+    
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
@@ -784,6 +803,7 @@ const get_reerral_global_data = async (req, res) => {
         },
       },
     ]);
+
     let uni_comission_total = await transactions.aggregate([
       {
         $match: {
@@ -799,6 +819,7 @@ const get_reerral_global_data = async (req, res) => {
         },
       },
     ]);
+    
     let binary_comission_this_month = await transactions.aggregate([
       {
         $match: {
@@ -890,7 +911,7 @@ const uni_comission_count = async (interval, address = null) => {
     key: "referral_uni_options",
   });
   let bv = referral_options?.object_value?.binaryData?.lvlOptions;
-  // if()
+  
   let comissions =
     referral_options?.object_value?.uniData?.lvlOptions?.maxCommPercentage;
   let maxCommision =
@@ -954,7 +975,7 @@ const uni_comission_count = async (interval, address = null) => {
   // console.log(filteredStakes);
 
   let addresses_that_staked_this_interval = [];
-  if (address) {
+  if (address && typeof address === 'string') {
     addresses_that_staked_this_interval = [address];
   } else {
     for (let i = 0; i < filteredStakes.length; i++) {
@@ -998,6 +1019,7 @@ const uni_comission_count = async (interval, address = null) => {
 
     let tx_hash = ("0x" + tx_hash_generated).toLowerCase();
     let from = comissions_of_addresses[i];
+    //tx type bonus
     write_tx.push({
       from: from.address,
       to: from.referral_address,
@@ -1014,6 +1036,8 @@ const uni_comission_count = async (interval, address = null) => {
       },
     });
   }
+
+  console.log(comissions_of_addresses, write_tx);
   const result = {};
 
   for (let i = 0; i < write_tx.length; i++) {
@@ -1106,7 +1130,7 @@ const binary_comission_count = async (interval, address = null) => {
         $sort: { staketime: -1 },
       },
     ]);
-
+    
     const filteredStakesIds = await stakes.aggregate([
       {
         $match: {
@@ -1130,14 +1154,16 @@ const binary_comission_count = async (interval, address = null) => {
     for (let i = 0; i < filteredStakesIds.length; i++) {
       stakeIds.push(filteredStakesIds[i]._id);
     }
-
+    
     // return { filteredStakes: filteredStakes.length, stakeIds: stakeIds.length };
 
     let referral_user_addresses = await referral_binary_users.find({
       user_address: { $in: addresses_that_staked_this_interval },
     });
+
     let addresses_that_staked_this_interval_parent = [];
-    if (address) {
+
+    if (address && typeof address === 'string') {
       addresses_that_staked_this_interval_parent = [address];
     } else {
       for (let i = 0; i < referral_user_addresses.length; i++) {
@@ -1146,7 +1172,7 @@ const binary_comission_count = async (interval, address = null) => {
         );
       }
     }
-
+    
     let referral_addresses = await referral_binary_users.aggregate([
       {
         $match: {
@@ -1167,15 +1193,18 @@ const binary_comission_count = async (interval, address = null) => {
     ]);
 
     let calc_result = [];
+
     for (let i = 0; i < referral_addresses.length; i++) {
       let document = referral_addresses[i].documents;
       let amount_sum_left = 0;
       let amount_sum_right = 0;
+
       for (let k = 0; k < document.length; k++) {
         let one_doc = document[k];
         let this_addr_stake = _.find(filteredStakes, {
           _id: one_doc.user_address,
         });
+
         if (this_addr_stake) {
           if (one_doc.side == "left") {
             amount_sum_left += this_addr_stake.totalAmount;
@@ -1184,16 +1213,19 @@ const binary_comission_count = async (interval, address = null) => {
           }
         }
       }
+
       let side, amount;
       let account_check = await accounts.findOne({
         address: referral_addresses[i]._id,
       });
+
       const currentDate = new Date();
       const monthsPassed =
         (currentDate.getFullYear() - account_check.createdAt.getFullYear()) * 12 +
         (currentDate.getMonth() - account_check.createdAt.getMonth());
 
       let flush_out;
+
       if (
         (account_check?.flush_out &&
           account_check?.flush_out?.active &&
@@ -1233,6 +1265,7 @@ const binary_comission_count = async (interval, address = null) => {
         amount_sum_left += flush_left;
         amount_sum_right += flush_right;
       }
+
       if (amount_sum_left > amount_sum_right) {
         side = "right";
         amount = amount_sum_right;
@@ -1286,6 +1319,7 @@ const binary_comission_count = async (interval, address = null) => {
           user_whole_amount += to_Add_amount;
         }
       }
+      
       if (user_amount_added_by_lvl.length > 0) {
         all_tx_to_be_done.push({
           address: one_calc.address,
@@ -1350,7 +1384,7 @@ const binary_comission_count = async (interval, address = null) => {
   }
 };
 
-const binary_comission_count_user = async (interval, referral_address, main_address) => {
+const binary_comission_count_user = async (interval, referral_address) => {
   try {
     let interval_ago = moment().subtract(interval, "days").startOf("day").valueOf();
     interval_ago = interval_ago / 1000;
@@ -1423,30 +1457,25 @@ const binary_comission_count_user = async (interval, referral_address, main_addr
       },
     ]);
     
-    // const filteredStakesAllTime = await stakes.aggregate([
-    //   {
-    //     $lookup: {
-    //       from: "accounts",
-    //       localField: "address",
-    //       foreignField: "account_owner",
-    //       as: "joinedAccounts",
-    //     },
-    //   },
-    //   {
-    //     $unwind: "$joinedAccounts",
-    //   },
-    //   {
-    //     $group: {
-    //       _id: "$joinedAccounts.address",
-    //       totalAmount: { $sum: "$amount" }
-    //     },
-    //   },
-    // ]);
-
-    let current_user_acc = await accounts.find({ 
-      address: main_address,
-      account_category: "main"
-    });
+    const filteredStakesAllTime = await stakes.aggregate([
+      {
+        $lookup: {
+          from: "accounts",
+          localField: "address",
+          foreignField: "account_owner",
+          as: "joinedAccounts",
+        },
+      },
+      {
+        $unwind: "$joinedAccounts",
+      },
+      {
+        $group: {
+          _id: "$joinedAccounts.address",
+          totalAmount: { $sum: "$amount" }
+        },
+      },
+    ]);
 
     let addresses_that_staked_this_interval = [];
 
@@ -1485,22 +1514,19 @@ const binary_comission_count_user = async (interval, referral_address, main_addr
       let amount_sum_left = 0;
       let amount_sum_right = 0;
       let total_staked_amount = 0;
+
       for (let k = 0; k < document.length; k++) {
         let one_doc = document[k];
         let this_addr_stake = _.find(filteredStakes, {
           _id: one_doc.user_address,
         });
 
-        // let this_addr_stake_all_time = _.find(filteredStakesAllTime, {
-        //   _id: one_doc.user_address,
-        // });
+        let this_addr_stake_all_time = _.find(filteredStakesAllTime, {
+          _id: one_doc.user_address,
+        });
 
-        // if (this_addr_stake_all_time) {
-        //   total_staked_amount += this_addr_stake_all_time.totalAmount;
-        // }
-
-        if (current_user_acc && current_user_acc.length > 0) {
-          total_staked_amount = current_user_acc[0].stakedTotal;
+        if (this_addr_stake_all_time) {
+          total_staked_amount += this_addr_stake_all_time.totalAmount;
         }
         
         // Check why we convert it to tokens again
@@ -1684,7 +1710,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
       {
         $match: {
           staketime: { $gte: interval_ago },
-          // uni_placed: false,
+          uni_placed: false,
         },
       },
       {
@@ -1831,7 +1857,7 @@ module.exports = {
   get_referral_code,
   get_referral_uni_transactions,
   get_referral_binary_transactions,
-  get_reerral_global_data,
+  get_referral_global_data,
   get_referral_parent_address,
   get_referral_options,
   cron_test,

@@ -34,13 +34,15 @@ router.post(
   referral_controller.get_referral_binary_transactions
 );
 router.post(
-  "/get_reerral_global_data",
-  referral_controller.get_reerral_global_data
+  "/get_referral_global_data",
+  referral_controller.get_referral_global_data
 );
 router.post(
   "/get_referral_parent_address",
   referral_controller.get_referral_parent_address
 );
+router.post("/uni_comission_count", referral_controller.uni_comission_count);
+router.post("/binary_comission_count", referral_controller.binary_comission_count);
 router.post("/get_referral_options", referral_controller.get_referral_options);
 router.post("/binary_comission_count_user", async (req, res) => {
   let { address } = req.body;
