@@ -1602,7 +1602,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
         total_staked_amount,
       });
     }
-
+    
     let returnData;
     if (Array.isArray(referral_address)) {
       returnData = [];
@@ -1612,9 +1612,11 @@ const binary_comission_count_user = async (interval, referral_address) => {
         let total_right = 0;
         let one_calc = calc_result[k];
         let amount = one_calc.amount;
+        
         if (amount == bv) {
           amount += 1;
         }
+
         left_total = one_calc.amount_sum_left;
         total_right = one_calc.amount_sum_right;
         for (let i = 0; i < bv_options.length; i++) {
@@ -1647,28 +1649,37 @@ const binary_comission_count_user = async (interval, referral_address) => {
       let all_amount_sum = 0;
       let left_total = 0;
       let total_right = 0;
+
       for (let k = 0; k < calc_result.length; k++) {
         let one_calc = calc_result[k];
         let amount = one_calc.amount;
+        
         if (amount == bv) {
           amount += 1;
         }
+
         left_total = one_calc.amount_sum_left;
         total_right = one_calc.amount_sum_right;
+        
         for (let i = 0; i < bv_options.length; i++) {
           let oneBv = bv_options[i];
+
           if (amount > oneBv.from) {
-            let amount_multip_prepare = amount - oneBv.from;
+            let amount_multip_prepare = oneBv.to - oneBv.from;
+
             if (i + 1 == 1) {
-              amount_multip_prepare = amount;
-            }
-            if (oneBv.to && amount > oneBv.to) {
               amount_multip_prepare = oneBv.to;
             }
 
+            // make this 3000000 as param from admin
+            if (oneBv.to && oneBv.to > 3000000 && amount > oneBv.from) {
+              amount_multip_prepare = amount - oneBv.from;
+            }
+            
             let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
-            let to_Add_amount = amunt_to_multiply * oneBv.price;
-            all_amount_sum += to_Add_amount;
+            let to_add_amount = amunt_to_multiply * oneBv.price;
+            
+            all_amount_sum += to_add_amount;
           }
         }
       }
