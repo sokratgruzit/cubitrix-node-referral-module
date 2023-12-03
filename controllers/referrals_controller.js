@@ -925,7 +925,7 @@ const uni_comission_count = async (interval, address = null) => {
   let maxCommision = referral_options?.object_value?.uniData?.lvlOptions?.maxCommision;
 
   let atr_usd_rates = await get_rates();
-  //let atr_usd = atr_usd_rates?.atr?.usd;
+  let atr_usd = atr_usd_rates?.atr?.usd;
 
   const filteredStakes = await stakes.aggregate([
     {
@@ -949,7 +949,7 @@ const uni_comission_count = async (interval, address = null) => {
     {
       $group: {
         _id: "$joinedAccounts.address",
-        totalAmount: { $sum: "$amount" },
+        totalAmount: { $sum: { $multiply: ["$amount", "$A1_price"] } },
       },
     },
   ]);
@@ -984,14 +984,14 @@ const uni_comission_count = async (interval, address = null) => {
   for (let i = 0; i < filteredStakes.length; i++) {
     for (let k = 0; k < referral_addresses.length; k++) {
       if (referral_addresses[k].user_address == filteredStakes[i]._id) {
-        let amount_today_award = (filteredStakes[i].totalAmount * parseFloat(comissions[referral_addresses[k]?.lvl - 1])) / 100;
+        let amount_today_award = ((filteredStakes[i].totalAmount / atr_usd) * parseFloat(comissions[referral_addresses[k]?.lvl - 1])) / 100;
         let maxCommissionLvl = maxCommision[referral_addresses[k]?.lvl - 1];
         maxCommissionLvl = parseFloat(maxCommissionLvl);
 
         comissions_of_addresses.push({
           address: referral_addresses[k].user_address,
           referral_address: referral_addresses[k].referral_address,
-          amount_today: filteredStakes[i].totalAmount,
+          amount_today: filteredStakes[i].totalAmount / atr_usd,
           lvl: referral_addresses[k]?.lvl,
           percent: comissions[referral_addresses[k]?.lvl - 1],
           amount_today_reward: maxCommissionLvl > amount_today_award ? amount_today_award : maxCommissionLvl,
@@ -1310,52 +1310,113 @@ const binary_comission_count = async (interval, address = null) => {
       let one_calc = calc_result[k];
       let user_amount_added_by_lvl = [];
       let amount = one_calc.amount;
+      let remaining_amount = amount;
+      let user_whole_amount = 0;
 
       if (amount == bv) {
         amount += 1;
       }
 
-      let user_whole_amount = 0;
-
       for (let i = 0; i < bv_options.length; i++) {
         // Convert all bvs to system currency
-        let oneBv = bv_options[i];
-        let to = oneBv.to;
-        let from = oneBv.from;
-        let price = oneBv.price / atr_usd;
+        let one_bv = bv_options[i];
+        let to = one_bv.to;
+        let from = one_bv.from;
+        let price = one_bv.price / atr_usd;
 
-        if (amount > from) {
-          let amount_multip_prepare = to - from;
+        if (remaining_amount > from) {
+          let amount_in_range = Math.min(remaining_amount, to) - from;
 
-          if (i + 1 == 1) {
-            amount_multip_prepare = to;
+          if (i === 0) {
+            // Special case for the first iteration
+            amount_in_range = to;
           }
 
           // Make this 3000000 as param from admin
           if (to && to > 3000000 && amount > from) {
-            amount_multip_prepare = amount - from;
+            amount_in_range = remaining_amount - from;
           }
 
-          let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
-          let to_add_amount = amunt_to_multiply * price;
+          let units_to_multiply = Math.floor(amount_in_range / bv);
+          let to_add_amount = units_to_multiply * price;
 
           all_amount_sum += to_add_amount;
+          remaining_amount -= amount_in_range;
 
           user_amount_added_by_lvl.push({
             lvl: i + 1,
             amount: to_add_amount,
             side: one_calc.side,
-            amunt_to_multiply,
-            price: oneBv.price,
+            units_to_multiply,
+            price: one_bv.price,
             address: one_calc.address,
             one_calc_amount: one_calc.amount,
-            amount_multip_prepare,
+            amount_in_range,
           });
 
           user_whole_amount += to_add_amount;
+
+          if (remaining_amount <= 0) {
+            break; 
+          }
+        } else {
+          let units_to_multiply = Math.floor(remaining_amount / bv);
+          let to_add_amount = units_to_multiply * price;
+
+          user_amount_added_by_lvl.push({
+            lvl: i + 1,
+            amount: to_add_amount,
+            side: one_calc.side,
+            units_to_multiply,
+            price: one_bv.price,
+            address: one_calc.address,
+            one_calc_amount: one_calc.amount,
+            amount_in_range,
+          });
+
+          user_whole_amount += to_add_amount;
+          break;
         }
       }
-      return;
+
+      // for (let i = 0; i < bv_options.length; i++) {
+      //   // Convert all bvs to system currency
+      //   let oneBv = bv_options[i];
+      //   let to = oneBv.to;
+      //   let from = oneBv.from;
+      //   let price = oneBv.price / atr_usd;
+
+      //   if (amount > from) {
+      //     let amount_multip_prepare = to - from;
+
+      //     if (i + 1 == 1) {
+      //       amount_multip_prepare = to;
+      //     }
+
+      //     // Make this 3000000 as param from admin
+      //     if (to && to > 3000000 && amount > from) {
+      //       amount_multip_prepare = amount - from;
+      //     }
+
+      //     let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
+      //     let to_add_amount = amunt_to_multiply * price;
+
+      //     all_amount_sum += to_add_amount;
+
+      //     user_amount_added_by_lvl.push({
+      //       lvl: i + 1,
+      //       amount: to_add_amount,
+      //       side: one_calc.side,
+      //       amunt_to_multiply,
+      //       price: oneBv.price,
+      //       address: one_calc.address,
+      //       one_calc_amount: one_calc.amount,
+      //       amount_multip_prepare,
+      //     });
+
+      //     user_whole_amount += to_add_amount;
+      //   }
+      // }
       
       if (user_amount_added_by_lvl.length > 0) {
         all_tx_to_be_done.push({
@@ -1644,6 +1705,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
         let total_right = 0;
         let one_calc = calc_result[k];
         let amount = one_calc.amount;
+        let remaining_amount = amount;
         
         if (amount == bv) {
           amount += 1;
@@ -1652,29 +1714,71 @@ const binary_comission_count_user = async (interval, referral_address) => {
         left_total = one_calc.amount_sum_left;
         total_right = one_calc.amount_sum_right;
 
+        // for (let i = 0; i < bv_options.length; i++) {
+        //   // amount = 135000
+        //   // Convert all bvs to system currency
+        //   let oneBv = bv_options[i]; 
+        //   // bv_options[0] = { from: 5000, to: 100000, price: 500 }
+        //   // bv_options[1] = { from: 100000, to: 300000, price: 300 }
+        //   // bv_options[2] = { from: 300000, to: 3000000, price: 100 }
+        //   let to = oneBv.to; 
+        //   let from = oneBv.from;
+        //   let price = oneBv.price / atr_usd;
+
+        //   if (amount > from) {
+        //     let amount_multip_prepare = to - from;
+
+        //     if (i + 1 == 1) {
+        //       amount_multip_prepare = to;
+        //     }
+
+        //     if (amount_multip_prepare)
+
+        //     // Make this 3000000 as param from admin
+        //     if (to && to > 3000000 && amount > from) {
+        //       amount_multip_prepare = amount - from;
+        //     }
+
+        //     let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
+        //     let to_add_amount = amunt_to_multiply * price;
+
+        //     all_amount_sum += to_add_amount;
+        //   }
+        // }
+
         for (let i = 0; i < bv_options.length; i++) {
-          // Convert all bvs to system currency
-          let oneBv = bv_options[i];
-          let to = oneBv.to;
-          let from = oneBv.from;
-          let price = oneBv.price / atr_usd;
+          let one_bv = bv_options[i];
+          let to = one_bv.to;
+          let from = one_bv.from;
+          let price = one_bv.price / atr_usd;
 
-          if (amount > from) {
-            let amount_multip_prepare = to - from;
-
-            if (i + 1 == 1) {
-              amount_multip_prepare = to;
+          if (remaining_amount > from) {
+            let amount_in_range = Math.min(remaining_amount, to) - from;
+            
+            if (i === 0) {
+              // Special case for the first iteration
+              amount_in_range = to;
             }
 
-            // Make this 3000000 as param from admin
             if (to && to > 3000000 && amount > from) {
-              amount_multip_prepare = amount - from;
+              amount_in_range = remaining_amount - from;
             }
 
-            let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
-            let to_add_amount = amunt_to_multiply * price;
+            let units_to_multiply = Math.floor(amount_in_range / bv);
+            let to_add_amount = units_to_multiply * price;
 
             all_amount_sum += to_add_amount;
+            remaining_amount -= amount_in_range;
+
+            if (remaining_amount <= 0) {
+              break; 
+            }
+          } else {
+            let units_to_multiply = Math.floor(remaining_amount / bv);
+            let to_add_amount = units_to_multiply * price;
+
+            all_amount_sum += to_add_amount;
+            break;
           }
         }
         
@@ -1696,6 +1800,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
       for (let k = 0; k < calc_result.length; k++) {
         let one_calc = calc_result[k];
         let amount = one_calc.amount;
+        let remaining_amount = amount;
         
         if (amount == bv) {
           amount += 1;
@@ -1703,32 +1808,68 @@ const binary_comission_count_user = async (interval, referral_address) => {
 
         left_total = one_calc.amount_sum_left;
         total_right = one_calc.amount_sum_right;
-        
+
         for (let i = 0; i < bv_options.length; i++) {
-          // Convert all bvs to stystem currency
-          let oneBv = bv_options[i];
-          let to = oneBv.to;
-          let from = oneBv.from;
-          let price = oneBv.price / atr_usd;
+          let one_bv = bv_options[i];
+          let to = one_bv.to;
+          let from = one_bv.from;
+          let price = one_bv.price / atr_usd;
 
-          if (amount > from) {
-            let amount_multip_prepare = to - from;
-
-            if (i + 1 == 1) {
-              amount_multip_prepare = to;
+          if (remaining_amount > from) {
+            let amount_in_range = Math.min(remaining_amount, to) - from;
+            
+            if (i === 0) {
+              // Special case for the first iteration
+              amount_in_range = to;
             }
 
-            // make this 3000000 as param from admin
             if (to && to > 3000000 && amount > from) {
-              amount_multip_prepare = amount - from;
+              amount_in_range = remaining_amount - from;
             }
-            
-            let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
-            let to_add_amount = amunt_to_multiply * price;
-            
+
+            let units_to_multiply = Math.floor(amount_in_range / bv);
+            let to_add_amount = units_to_multiply * price;
+
             all_amount_sum += to_add_amount;
+            remaining_amount -= amount_in_range;
+
+            if (remaining_amount <= 0) {
+              break; 
+            }
+          } else {
+            let units_to_multiply = Math.floor(remaining_amount / bv);
+            let to_add_amount = units_to_multiply * price;
+
+            all_amount_sum += to_add_amount;
+            break;
           }
         }
+        
+        // for (let i = 0; i < bv_options.length; i++) {
+        //   // Convert all bvs to stystem currency
+        //   let oneBv = bv_options[i];
+        //   let to = oneBv.to;
+        //   let from = oneBv.from;
+        //   let price = oneBv.price / atr_usd;
+
+        //   if (amount > from) {
+        //     let amount_multip_prepare = to - from;
+
+        //     if (i + 1 == 1) {
+        //       amount_multip_prepare = to;
+        //     }
+
+        //     // make this 3000000 as param from admin
+        //     if (to && to > 3000000 && amount > from) {
+        //       amount_multip_prepare = amount - from;
+        //     }
+            
+        //     let amunt_to_multiply = Math.floor(amount_multip_prepare / bv);
+        //     let to_add_amount = amunt_to_multiply * price;
+            
+        //     all_amount_sum += to_add_amount;
+        //   }
+        // }
       }
 
       returnData = {
@@ -1755,7 +1896,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
     });
     
     let atr_usd_rates = await get_rates();
-    //let atr_usd = atr_usd_rates?.atr?.usd;
+    let atr_usd = atr_usd_rates?.atr?.usd;
 
     let toCheckReferral = referral_address;
 
@@ -1789,7 +1930,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
       {
         $group: {
           _id: "$joinedAccounts.address",
-          totalAmount: { $sum: "$amount" },
+          totalAmount: { $sum: { $multiply: ["$amount", "$A1_price"] } },
         },
       },
     ]);
@@ -1813,7 +1954,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
       for (let k = 0; k < referral_addresses.length; k++) {
         for (let i = 0; i < filteredStakes.length; i++) {
           if (referral_addresses[k].user_address == filteredStakes[i]._id) {
-            let amount_today_award = (filteredStakes[i].totalAmount * parseFloat(comissions[referral_addresses[k]?.lvl - 1])) / 100;
+            let amount_today_award = ((filteredStakes[i].totalAmount / atr_usd) * parseFloat(comissions[referral_addresses[k]?.lvl - 1])) / 100;
             let maxCommissionLvl = maxCommision[referral_addresses[k]?.lvl - 1];
             
             maxCommissionLvl = parseFloat(maxCommissionLvl);
@@ -1846,7 +1987,7 @@ const uni_comission_count_user = async (interval, referral_address) => {
       for (let i = 0; i < filteredStakes.length; i++) {
         for (let k = 0; k < referral_addresses.length; k++) {
           if (referral_addresses[k].user_address == filteredStakes[i]._id) {
-            let amount_today_award = (filteredStakes[i].totalAmount * parseFloat(comissions[referral_addresses[k]?.lvl - 1])) / 100;
+            let amount_today_award = ((filteredStakes[i].totalAmount / atr_usd) * parseFloat(comissions[referral_addresses[k]?.lvl - 1])) / 100;
             let maxCommissionLvl = maxCommision[referral_addresses[k]?.lvl - 1];
 
             maxCommissionLvl = parseFloat(maxCommissionLvl);
