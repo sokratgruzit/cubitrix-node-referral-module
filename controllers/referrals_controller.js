@@ -1330,6 +1330,8 @@ const binary_comission_count = async (interval, address = null) => {
           if (i === 0) {
             // Special case for the first iteration
             amount_in_range = to;
+
+            if (remaining_amount < to) amount_in_range = remaining_amount;
           }
 
           // Make this 3000000 as param from admin
@@ -1823,6 +1825,8 @@ const binary_comission_count_user = async (interval, referral_address) => {
             if (i === 0) {
               // Special case for the first iteration
               amount_in_range = to;
+
+              if (remaining_amount < to) amount_in_range = remaining_amount;
             }
 
             if (to && to > 3000000 && amount > from) {
