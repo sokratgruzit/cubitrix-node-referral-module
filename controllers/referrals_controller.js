@@ -1101,6 +1101,7 @@ const binary_comission_count = async (interval, address = null) => {
     // Convert bv to system currency
     let bv = referral_options?.bv ? parseInt(referral_options?.bv): 5000;
     let bv_options_flushed_out = referral_options?.flushed_out ? parseInt(referral_options?.flushed_out) : 3;
+    let bv_max_amount_limit = parseInt(referral_options?.maxAmountLimit);
 
     // Get all amounts of stakes from stakes collection
     // and aggregate it into the array of ids that represent
@@ -1335,7 +1336,7 @@ const binary_comission_count = async (interval, address = null) => {
           }
 
           // Make this 3000000 as param from admin
-          if (to && to > 3000000 && amount > from) {
+          if (to && to > bv_max_amount_limit && amount > from) {
             amount_in_range = remaining_amount - from;
           }
 
@@ -1510,10 +1511,12 @@ const binary_comission_count_user = async (interval, referral_address) => {
     let atr_usd = atr_usd_rates?.atr?.usd;
 
     let referral_options = ref_opts?.object_value?.binaryData;
+
     let bv_options = referral_options?.options;
     // Convert bv to system currency
     let bv = referral_options?.bv ? parseInt(referral_options?.bv) : 5000;
     let bv_options_flushed_out = referral_options?.flushed_out ? parseInt(referral_options?.flushed_out) : 3;
+    let bv_max_amount_limit = parseInt(referral_options?.maxAmountLimit);
     
     // Get all amounts of stakes from stakes collection
     // and aggregate it into the array of ids that represent
@@ -1764,7 +1767,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
               if (remaining_amount < to) amount_in_range = remaining_amount;
             }
 
-            if (to && to > 3000000 && amount > from) {
+            if (to && to > bv_max_amount_limit && amount > from) {
               amount_in_range = remaining_amount - from;
             }
 
@@ -1829,7 +1832,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
               if (remaining_amount < to) amount_in_range = remaining_amount;
             }
 
-            if (to && to > 3000000 && amount > from) {
+            if (to && to > bv_max_amount_limit && amount > from) {
               amount_in_range = remaining_amount - from;
             }
 
