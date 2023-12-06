@@ -1099,7 +1099,7 @@ const binary_comission_count = async (interval, address = null) => {
     let referral_options = ref_opts?.object_value?.binaryData;
     let bv_options = referral_options?.options;
     // Convert bv to system currency
-    let bv = referral_options?.bv ? parseInt(referral_options?.bv): 5000;
+    let bv = referral_options?.bv ? parseInt(referral_options?.bv) / atr_usd : 5000 / atr_usd;
     let bv_options_flushed_out = referral_options?.flushed_out ? parseInt(referral_options?.flushed_out) : 3;
     let bv_max_amount_limit = parseInt(referral_options?.maxAmountLimit);
 
@@ -1325,8 +1325,6 @@ const binary_comission_count = async (interval, address = null) => {
         let from = one_bv.from / atr_usd;
         let price = one_bv.price / atr_usd;
 
-        bv = bv / atr_usd;
-
         if (remaining_amount > from) {
           let amount_in_range = Math.min(remaining_amount, to);
         
@@ -1511,7 +1509,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
 
     let bv_options = referral_options?.options;
     // Convert bv to system currency
-    let bv = referral_options?.bv ? parseInt(referral_options?.bv) : 5000;
+    let bv = referral_options?.bv ? parseInt(referral_options?.bv) / atr_usd : 5000 / atr_usd;
     let bv_options_flushed_out = referral_options?.flushed_out ? parseInt(referral_options?.flushed_out) : 3;
     let bv_max_amount_limit = parseInt(referral_options?.maxAmountLimit);
     
@@ -1753,8 +1751,6 @@ const binary_comission_count_user = async (interval, referral_address) => {
           let to = one_bv.to / atr_usd;
           let from = one_bv.from / atr_usd;
           let price = one_bv.price / atr_usd;
-
-          bv = bv / atr_usd;
         
           if (remaining_amount > from) {
             let amount_in_range = Math.min(remaining_amount, to);
@@ -1818,8 +1814,6 @@ const binary_comission_count_user = async (interval, referral_address) => {
           let to = one_bv.to / atr_usd;
           let from = one_bv.from / atr_usd;
           let price = one_bv.price / atr_usd;
-
-          bv = bv / atr_usd;
         
           if (remaining_amount > from) {
             let amount_in_range = Math.min(remaining_amount, to);
