@@ -1321,9 +1321,11 @@ const binary_comission_count = async (interval, address = null) => {
       for (let i = 0; i < bv_options.length; i++) {
         // Convert all bvs to system currency
         let one_bv = bv_options[i];
-        let to = one_bv.to;
-        let from = one_bv.from;
+        let to = one_bv.to / atr_usd;
+        let from = one_bv.from / atr_usd;
         let price = one_bv.price / atr_usd;
+
+        bv = bv / atr_usd;
 
         if (remaining_amount > from) {
           let amount_in_range = Math.min(remaining_amount, to);
@@ -1748,9 +1750,11 @@ const binary_comission_count_user = async (interval, referral_address) => {
 
         for (let i = 0; i < bv_options.length; i++) {
           let one_bv = bv_options[i];
-          let to = one_bv.to;
-          let from = one_bv.from;
+          let to = one_bv.to / atr_usd;
+          let from = one_bv.from / atr_usd;
           let price = one_bv.price / atr_usd;
+
+          bv = bv / atr_usd;
         
           if (remaining_amount > from) {
             let amount_in_range = Math.min(remaining_amount, to);
@@ -1811,9 +1815,11 @@ const binary_comission_count_user = async (interval, referral_address) => {
 
         for (let i = 0; i < bv_options.length; i++) {
           let one_bv = bv_options[i];
-          let to = one_bv.to;
-          let from = one_bv.from;
+          let to = one_bv.to / atr_usd;
+          let from = one_bv.from / atr_usd;
           let price = one_bv.price / atr_usd;
+
+          bv = bv / atr_usd;
         
           if (remaining_amount > from) {
             let amount_in_range = Math.min(remaining_amount, to);
