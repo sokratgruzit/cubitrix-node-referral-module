@@ -1372,7 +1372,7 @@ const binary_comission_count = async (interval, address = null) => {
             price: one_bv.price,
             address: one_calc.address,
             one_calc_amount: one_calc.amount,
-            amount_multip_prepare: amount_in_range,
+            amount_multip_prepare: remaining_amount,
           });
         }
       }
