@@ -1359,7 +1359,26 @@ const binary_comission_count = async (interval, address = null) => {
           if (remaining_amount <= 0) {
             break; 
           }
-        } 
+        } else if (remaining_amount < from && remaining_amount > 0) {
+          let units_to_multiply = Math.floor(remaining_amount / bv);
+          let to_add_amount = units_to_multiply * price;
+          
+          all_amount_sum += to_add_amount;
+          remaining_amount = 0;
+
+          user_amount_added_by_lvl.push({
+            lvl: i + 1,
+            amount: to_add_amount,
+            side: one_calc.side,
+            amunt_to_multiply: units_to_multiply,
+            price: one_bv.price,
+            address: one_calc.address,
+            one_calc_amount: one_calc.amount,
+            amount_multip_prepare: amount_in_range,
+          });
+
+          user_whole_amount += to_add_amount;
+        }
       }
 
       // for (let i = 0; i < bv_options.length; i++) {
@@ -1758,7 +1777,13 @@ const binary_comission_count_user = async (interval, referral_address) => {
             if (remaining_amount <= 0) {
               break; 
             }
-          } 
+          } else if (remaining_amount < from && remaining_amount > 0) {
+            let units_to_multiply = Math.floor(remaining_amount / bv);
+            let to_add_amount = units_to_multiply * price;
+            
+            all_amount_sum += to_add_amount;
+            remaining_amount = 0;
+          }
         }
         
         returnData.push({
@@ -1815,7 +1840,13 @@ const binary_comission_count_user = async (interval, referral_address) => {
             if (remaining_amount <= 0) {
               break; 
             }
-          } 
+          } else if (remaining_amount < from && remaining_amount > 0) {
+            let units_to_multiply = Math.floor(remaining_amount / bv);
+            let to_add_amount = units_to_multiply * price;
+            
+            all_amount_sum += to_add_amount;
+            remaining_amount = 0;
+          }
         }
         
         // for (let i = 0; i < bv_options.length; i++) {
