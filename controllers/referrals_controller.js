@@ -1340,7 +1340,7 @@ const binary_comission_count = async (interval, address = null) => {
           let units_to_multiply = Math.floor(amount_in_range / bv);
           let to_add_amount = units_to_multiply * price;
           
-          all_amount_sum += to_add_amount;
+          user_whole_amount += to_add_amount;
           remaining_amount -= amount_in_range;
 
           user_amount_added_by_lvl.push({
@@ -1354,8 +1354,6 @@ const binary_comission_count = async (interval, address = null) => {
             amount_multip_prepare: amount_in_range,
           });
 
-          user_whole_amount += to_add_amount;
-
           if (remaining_amount <= 0) {
             break; 
           }
@@ -1363,7 +1361,7 @@ const binary_comission_count = async (interval, address = null) => {
           let units_to_multiply = Math.floor(remaining_amount / bv);
           let to_add_amount = units_to_multiply * price;
           
-          all_amount_sum += to_add_amount;
+          user_whole_amount += to_add_amount;
           remaining_amount = 0;
 
           user_amount_added_by_lvl.push({
@@ -1376,8 +1374,6 @@ const binary_comission_count = async (interval, address = null) => {
             one_calc_amount: one_calc.amount,
             amount_multip_prepare: amount_in_range,
           });
-
-          user_whole_amount += to_add_amount;
         }
       }
 
