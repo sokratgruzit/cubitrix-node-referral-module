@@ -151,7 +151,7 @@ const check_referral_available = async (req, res) => {
     if (!account) {
       return main_helper.error_response(res, "Referral code incorrect");
     }
-
+    
     if (
       checkAddress[0] == user_main_addr.address ||
       account?.tier?.value == "Novice Navigator"
@@ -166,7 +166,7 @@ const check_referral_available = async (req, res) => {
           statusCode: 0,
         });
       }
-
+      
       let decr = await ref_service.decrypt(checkAddress[1]);
       let split_dec = decr.split("_");
 
@@ -205,7 +205,7 @@ const check_referral_available = async (req, res) => {
       let binary_max_lvl = referral_options?.object_value?.binaryData?.maxUsers
         ? referral_options?.object_value?.binaryData?.maxUsers
         : 11;
-
+      
       let checkallspaces = await referral_binary_users.count({
         referral_address: checkAddress[0],
         lvl: binary_max_lvl,
