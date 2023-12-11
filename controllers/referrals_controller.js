@@ -1326,7 +1326,7 @@ const binary_comission_count = async (interval, address = null) => {
       
           if (i === 0) {
             // Special case for the first iteration
-            amount_in_range = to;
+            amount_in_range = Math.min(amount, to);
           }
       
           let units_to_multiply = Math.floor(amount_in_range / bv);
@@ -1655,7 +1655,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
         
             if (i === 0) {
               // Special case for the first iteration
-              amount_in_range = to;
+              amount_in_range = Math.min(amount, to);
             }
         
             let units_to_multiply = Math.floor(amount_in_range / bv);
@@ -1702,7 +1702,7 @@ const binary_comission_count_user = async (interval, referral_address) => {
         
             if (i === 0) {
               // Special case for the first iteration
-              amount_in_range = to;
+              amount_in_range = Math.min(amount, to);
             }
         
             let units_to_multiply = Math.floor(amount_in_range / bv);
