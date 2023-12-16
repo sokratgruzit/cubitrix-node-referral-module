@@ -16,14 +16,6 @@ const _ = require("lodash");
 const moment = require("moment");
 const mongoose = require("mongoose");
 
-// auto generate referral place
-// auto generate referrral place by side(left right)
-// place referral
-// place referral unilevel
-// bind referral unilevel in above mentioned methods
-// calculate daily referral bonus binary by stake amount to all lvls
-// calculate daily referral bonus unilevel by stake amount to all lvl
-
 const register_referral = async (req, res) => {
   try {
     let { referral_address, side } = req.body;
