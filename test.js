@@ -6,16 +6,32 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 
 const app = express();
-app.use(express.json({ extended: true }));
+app.use(express.json({extended: true}));
 app.use(cookieParser());
 
 const isAuthenticated = require("./middleware/IsAuthenticated");
 //const { check_referral_available } = require("./controllers/referrals_controller");
 
+const CryptoJS = require("crypto-js");
+
+const SECRET_KEY = process.env.SECRET_KEY;
+const MONGO_URL = process.env.MONGO_URL;
+
+function decrypt(ciphertext, secretKey) {
+  const bytes = CryptoJS.AES.decrypt(ciphertext, secretKey);
+  const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+  return decryptedText;
+}
+const mongoUrl = decrypt(MONGO_URL, SECRET_KEY);
+
 app.use(isAuthenticated);
 
 const cors_options = {
-  origin: ["http://localhost:4000", "http://localhost:3000", "http://localhost:6006"],
+  origin: [
+    "http://localhost:4000",
+    "http://localhost:3000",
+    "http://localhost:6006",
+  ],
   optionsSuccessStatus: 200,
   credentials: true,
 };
@@ -56,11 +72,13 @@ async function start() {
   const PORT = process.env.PORT || 4000;
   try {
     mongoose.set("strictQuery", false);
-    await mongoose.connect(process.env.MONGO_URL, {
+    await mongoose.connect(mongoUrl, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    app.listen(PORT, () => console.log(`App has been started on port ${PORT}...`));
+    app.listen(PORT, () =>
+      console.log(`App has been started on port ${PORT}...`)
+    );
   } catch (e) {
     console.log(`Server Error ${e.message}`);
     process.exit(1);
