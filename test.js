@@ -11,18 +11,11 @@ app.use(cookieParser());
 
 const isAuthenticated = require("./middleware/IsAuthenticated");
 //const { check_referral_available } = require("./controllers/referrals_controller");
+const decryptEnv = require("./utils/decryptEnv");
 
-const CryptoJS = require("crypto-js");
-
-const SECRET_KEY = process.env.SECRET_KEY;
 const MONGO_URL = process.env.MONGO_URL;
 
-function decrypt(ciphertext, secretKey) {
-  const bytes = CryptoJS.AES.decrypt(ciphertext, secretKey);
-  const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
-  return decryptedText;
-}
-const mongoUrl = decrypt(MONGO_URL, SECRET_KEY);
+const mongoUrl = decryptEnv(MONGO_URL);
 
 app.use(isAuthenticated);
 
