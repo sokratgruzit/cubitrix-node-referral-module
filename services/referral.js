@@ -100,6 +100,55 @@ const calculate_referral_best_place = async (
   }
 };
 
+// const calculate_referral_best_place = async (
+//   referral_address,
+//   user_address,
+//   side = "auto",
+// ) => {
+//   try {
+//     // now 11 later will take from admin
+//     // let binary_data_settings = await options.findOne({ key: "Binary Bv" });
+//     // console.log(binary_data_settings);
+//     // return binary_data_settings;
+    
+//     let recursion;
+//     let referral_options = await options.findOne({
+//       key: "referral_binary_bv_options",
+//     });
+    
+//     let binary_max_lvl = referral_options?.object_value?.binaryData?.maxUsers
+//       ? referral_options?.object_value?.binaryData?.maxUsers
+//       : 11;
+//     binary_max_lvl = parseInt(binary_max_lvl);
+    
+//     let free_spaces = await check_free_space_for_user(
+//       referral_address,
+//       side,
+//       binary_max_lvl,
+//     );
+
+//     if (free_spaces && Array.isArray(free_spaces) && free_spaces.length > 0) {
+//       let free_space = free_spaces[0];
+//       const parts = referral_address.split("_");
+
+//       await referral_binary_users.create({
+//         user_address,
+//         referral_address: parts[0],
+//         lvl: free_space.lvl,
+//         side: free_space.side,
+//         position: free_space.position,
+//       });
+//     } else {
+//       return free_spaces;
+//     }
+
+//     return free_spaces;
+//   } catch (e) {
+//     console.log(e.message);
+//     return false;
+//   }
+// };
+
 const calculate_referral_best_place_uni = async (
   referral_address,
   user_address,
@@ -176,6 +225,16 @@ const binary_recursion = async (
     lvl,
     side,
     position,
+  });
+
+  let main_account = await accounts.findOne({
+    address: user_address
+  });
+
+  await main_account.updateOne({
+    y: lvl,
+    x: position,
+    referral: true
   });
 
   if (assign_ref_to_user && lvl <= max_level_binary) {
@@ -366,6 +425,84 @@ const check_free_space_for_user = async (referral_code, side, binary_max_lvl) =>
     return false;
   }
 };
+
+// const check_free_space_for_user = async (referral_code, side, binary_max_lvl) => {
+//   try {
+//     let final_free_spaces = [];
+//     const parts = referral_code.split("_");
+    
+//     if (parts.length < 1) {
+//       return false;
+//     }
+
+//     let referral_address = parts[0];
+
+//     if (parts.length == 2) {
+//       const hashedSecretKey = hashSecretKey(secretKey);
+//       const decryptedText = decrypt(parts[1], hashedSecretKey);
+//       const parts2 = decryptedText.split("_");
+      
+//       let check_manual_referral_used = await referral_binary_users.findOne({
+//         referral_address: referral_address,
+//         lvl: parseInt(parts2[0]),
+//         position: parseInt(parts2[1]),
+//       });
+
+//       if (check_manual_referral_used) {
+//         return "code is already used";
+//       } else {
+//         final_free_spaces.push({
+//           lvl: parseInt(parts2[0]),
+//           position: parseInt(parts2[1]),
+//         });
+//       }
+//     }
+
+//     let check_referral_for_users = await referral_binary_users
+//     .find({})
+//     .sort({ lvl: -1 });
+
+//     if (check_referral_for_users.length > 0) {
+//       check_referral_for_users.sort((a, b) => b.position - a.position);
+  
+//       const highest_position = check_referral_for_users[0];
+
+//       // Check if on this level still have free positions
+//       let positions_count = Math.pow(2, highest_position.lvl);
+//       console.log(positions_count)
+//       if (positions_count === highest_position.position) {
+//         // On this level there is no free positions
+//         final_free_spaces.push({
+//           lvl: highest_position.lvl + 1,
+//           side: "left",
+//           position: 1
+//         })
+//       } else {
+//         // There are more free positions
+//         if (highest_position.position >= positions_count / 2) {
+//           final_free_spaces.push({
+//             lvl: highest_position.lvl,
+//             side: "right",
+//             position: highest_position.position + 1
+//           });
+//         } else {
+//           final_free_spaces.push({
+//             lvl: highest_position.lvl,
+//             side: "left",
+//             position: highest_position.position + 1
+//           });
+//         }
+//       }
+//     } else {
+//       console.log("No documents found.");
+//     }
+
+//     return final_free_spaces;
+//   } catch (e) {
+//     console.log(e.message);
+//     return false;
+//   }
+// };
 
 module.exports = {
   calculate_referral_best_place,

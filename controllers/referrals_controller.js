@@ -70,6 +70,7 @@ const register_referral = async (req, res) => {
     let auto_place, auto_place_uni;
 
     if (!user_already_have_referral_code) {
+      console.log('start checking')
       auto_place = await ref_service.calculate_referral_best_place(
         referral_address,
         user_main_addr.address,
@@ -121,7 +122,7 @@ const check_referral_available = async (req, res) => {
     user_address = user_address.toLowerCase();
     
     let checkAddress = referral_address.split("_");
-
+    console.log("124", checkAddress)
     let user_main_addr = await accounts.findOne({
       account_owner: user_address,
       account_category: "main",
@@ -159,9 +160,9 @@ const check_referral_available = async (req, res) => {
         });
       }
       
-      let decr = await ref_service.decrypt(checkAddress[1]);
+      let decr = ref_service.decrypt(checkAddress[1]);
       let split_dec = decr.split("_");
-
+      console.log("164", split_dec)
       if (split_dec.size < 3) {
         return main_helper.error_response(res, {
           message: "Incorrect code",
@@ -181,7 +182,7 @@ const check_referral_available = async (req, res) => {
         lvl: split_dec[0],
         position: split_dec[1],
       });
-
+      console.log("184", checkreferralbyplace)
       if (checkreferralbyplace) {
         return main_helper.error_response(res, {
           message: "no space",
@@ -202,7 +203,9 @@ const check_referral_available = async (req, res) => {
         referral_address: checkAddress[0],
         lvl: binary_max_lvl,
       });
-
+      console.log("204", checkAddress)
+      console.log("205", typeof binary_max_lvl)
+      console.log("206", Math.pow(2, binary_max_lvl))
       if (checkAddress == Math.pow(2, binary_max_lvl)) {
         return main_helper.error_response(res, {
           message: "No space",
