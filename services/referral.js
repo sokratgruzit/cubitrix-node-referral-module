@@ -233,8 +233,9 @@ const binary_recursion = async (
 
   await main_account.updateOne({
     y: lvl,
-    x: position,
-    referral: true
+    x: last_position,
+    referral: true,
+    positionID: encryptPositionId(Math.pow(2, lvl) + (last_position - 1))
   });
 
   if (assign_ref_to_user && lvl <= max_level_binary) {
@@ -271,6 +272,13 @@ const binary_recursion = async (
 };
 
 const secretKey = "YourSecretKey";
+
+function encryptPositionId(plaintext) {
+  const cipher = crypto.createCipher("aes-256-cbc", secretKey);
+  let encrypted = cipher.update(plaintext, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  return encrypted;
+}
 
 function encrypt(address, lvl, position, main_address) {
   const cipher = crypto.createCipher("aes-256-cbc", secretKey);

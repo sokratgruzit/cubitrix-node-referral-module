@@ -16,6 +16,22 @@ const _ = require("lodash");
 const moment = require("moment");
 const mongoose = require("mongoose");
 
+const get_referral_user_by_lvl_and_pos = async (req, res) => {
+  const { level, position } = req.body;
+
+  const main_account = await accounts.findOne({
+    account_category: "main",
+    y: level,
+    x: position
+  });
+
+  if (main_account) {
+    return main_helper.success_response(res, main_account);
+  }
+
+  return main_helper.error_response(res, "User not found");
+};
+
 const register_referral = async (req, res) => {
   try {
     let { referral_address, side } = req.body;
@@ -70,7 +86,6 @@ const register_referral = async (req, res) => {
     let auto_place, auto_place_uni;
 
     if (!user_already_have_referral_code) {
-      console.log('start checking')
       auto_place = await ref_service.calculate_referral_best_place(
         referral_address,
         user_main_addr.address,
@@ -122,7 +137,6 @@ const check_referral_available = async (req, res) => {
     user_address = user_address.toLowerCase();
     
     let checkAddress = referral_address.split("_");
-    console.log("124", checkAddress)
     let user_main_addr = await accounts.findOne({
       account_owner: user_address,
       account_category: "main",
@@ -162,7 +176,7 @@ const check_referral_available = async (req, res) => {
       
       let decr = ref_service.decrypt(checkAddress[1]);
       let split_dec = decr.split("_");
-      console.log("164", split_dec)
+
       if (split_dec.size < 3) {
         return main_helper.error_response(res, {
           message: "Incorrect code",
@@ -182,7 +196,7 @@ const check_referral_available = async (req, res) => {
         lvl: split_dec[0],
         position: split_dec[1],
       });
-      console.log("184", checkreferralbyplace)
+
       if (checkreferralbyplace) {
         return main_helper.error_response(res, {
           message: "no space",
@@ -203,9 +217,7 @@ const check_referral_available = async (req, res) => {
         referral_address: checkAddress[0],
         lvl: binary_max_lvl,
       });
-      console.log("204", checkAddress)
-      console.log("205", typeof binary_max_lvl)
-      console.log("206", Math.pow(2, binary_max_lvl))
+      
       if (checkAddress == Math.pow(2, binary_max_lvl)) {
         return main_helper.error_response(res, {
           message: "No space",
@@ -1903,6 +1915,7 @@ module.exports = {
   binary_comission_count_user,
   uni_comission_count_user,
   check_referral_available,
+  get_referral_user_by_lvl_and_pos
 };
 
 // test_change();

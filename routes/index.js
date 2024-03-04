@@ -15,7 +15,7 @@ router.post(
   "/check_referral_available",
   referral_controller.check_referral_available
 );
-
+router.post("/get_referral_user_by_lvl_and_pos", referral_controller.get_referral_user_by_lvl_and_pos);
 router.post("/get_referral_data", referral_controller.get_referral_data);
 router.post("/get_referral_tree", referral_controller.get_referral_tree);
 router.post(
