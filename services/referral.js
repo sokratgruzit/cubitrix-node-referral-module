@@ -65,6 +65,7 @@ const calculate_referral_best_place = async (
         returndata.position,
         [],
         returndata.referral_address,
+        parts[0]
       );
 
       return recursion;
@@ -90,6 +91,7 @@ const calculate_referral_best_place = async (
         returndata.position,
         [],
         find_parent.user_address,
+        parts[0]
       );
     }
 
@@ -193,6 +195,7 @@ const binary_recursion = async (
   last_position,
   final_data = [],
   referral_address,
+  introducer
 ) => {
   let referral_options = await options.findOne({
     key: "referral_binary_bv_options",
@@ -235,7 +238,9 @@ const binary_recursion = async (
     y: lvl,
     x: last_position,
     referral: true,
-    positionID: encryptPositionId((Math.pow(2, lvl) + (last_position - 1)).toString())
+    positionID: Math.pow(2, lvl) + (last_position - 1),
+    parent: referral_address_modified,
+    introducer
   });
 
   if (assign_ref_to_user && lvl <= max_level_binary) {
