@@ -235,7 +235,7 @@ const binary_recursion = async (
     y: lvl,
     x: last_position,
     referral: true,
-    positionID: encryptPositionId(Math.pow(2, lvl) + (last_position - 1))
+    positionID: encryptPositionId((Math.pow(2, lvl) + (last_position - 1)).toString())
   });
 
   if (assign_ref_to_user && lvl <= max_level_binary) {
