@@ -12,6 +12,51 @@ const global_helper = require("../helpers/global_helper");
 const moment = require("moment");
 const crypto = require("crypto");
 
+const referral_user_by_address = async (address) => {
+  const main_account = await accounts.findOne({
+    account_category: "main",
+    address
+  });
+
+  if (main_account) {
+    return main_account;
+  }
+
+  return null;
+};
+
+const referral_user_by_lvl_and_pos = async (level, position) => {
+  const referral_user = await accounts.findOne({
+    account_category: "main",
+    y: level,
+    x: position
+  });
+
+  let referral_parent = null;
+
+  if (referral_user) {
+    if (level === 0 && position === 0) {
+      referral_parent = null;
+    } else {
+      const parent_level = level - 1;
+      const parent_position = Math.ceil(position / 2);  
+      
+      referral_parent = await accounts.findOne({
+        account_category: "main",
+        y: parent_level,
+        x: parent_position
+      });
+    }
+  
+    return {
+      referral_user,
+      referral_parent
+    }
+  }
+
+  return null;
+};
+
 // sides can be ["auto", "left", "right", "selected"]
 const calculate_referral_best_place = async (
   referral_address,
@@ -198,7 +243,7 @@ const binary_recursion = async (
   last_position,
   final_data = [],
   referral_address,
-  parent
+  introducer
 ) => {
   let referral_options = await options.findOne({
     key: "referral_binary_bv_options",
@@ -237,14 +282,34 @@ const binary_recursion = async (
     address: user_address
   });
 
-  await main_account.updateOne({
-    y: lvl,
-    x: last_position,
-    referral: true,
-    positionID: Math.pow(2, lvl) + (last_position - 1),
-    parent,
-    introducer: referral_address_modified
+  const parent_level = lvl - 1;
+  const parent_position = Math.ceil(last_position / 2);  
+      
+  let referral_parent = await accounts.findOne({
+    account_category: "main",
+    y: parent_level,
+    x: parent_position
   });
+
+  if (referral_parent) {
+    await main_account.updateOne({
+      y: lvl,
+      x: last_position,
+      referral: true,
+      positionID: Math.pow(2, lvl) + (last_position - 1),
+      parent: referral_parent?.address,
+      introducer: introducer ? introducer : referral_address_modified
+    });
+  } else {
+    await main_account.updateOne({
+      y: lvl,
+      x: last_position,
+      referral: true,
+      positionID: Math.pow(2, lvl) + (last_position - 1),
+      parent: referral_address_modified,
+      introducer: introducer ? introducer : referral_address_modified
+    });
+  }
 
   if (assign_ref_to_user && lvl <= max_level_binary) {
     final_data.push(assign_ref_to_user);
@@ -272,7 +337,7 @@ const binary_recursion = async (
         last_position,
         final_data,
         referral_address,
-        parent
+        introducer
       );
     }
   }
@@ -526,4 +591,6 @@ module.exports = {
   calculate_referral_best_place_uni,
   encrypt,
   decrypt,
+  referral_user_by_lvl_and_pos,
+  referral_user_by_address
 };

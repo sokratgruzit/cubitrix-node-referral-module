@@ -34,14 +34,32 @@ const get_referral_user_by_address = async (req, res) => {
 const get_referral_user_by_lvl_and_pos = async (req, res) => {
   const { level, position } = req.body;
 
-  const main_account = await accounts.findOne({
+  const referral_user = await accounts.findOne({
     account_category: "main",
     y: level,
     x: position
   });
 
-  if (main_account) {
-    return main_helper.success_response(res, main_account);
+  let referral_parent = null;
+
+  if (referral_user) {
+    if (level === 0 && position === 0) {
+      referral_parent = null;
+    } else {
+      const parent_level = level - 1;
+      const parent_position = Math.ceil(position / 2);  
+      
+      referral_parent = await accounts.findOne({
+        account_category: "main",
+        y: parent_level,
+        x: parent_position
+      });
+    }
+
+    return main_helper.success_response(res, {
+      referral_user,
+      referral_parent
+    });
   }
 
   return main_helper.error_response(res, "User not found");
