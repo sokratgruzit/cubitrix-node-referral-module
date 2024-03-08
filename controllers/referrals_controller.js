@@ -16,6 +16,26 @@ const _ = require("lodash");
 const moment = require("moment");
 const mongoose = require("mongoose");
 
+const get_referral_uni_parent = async (req, res) => {
+  const { address } = req.body;
+
+  const uni_user = await referral_uni_users.findOne({
+    user_address: address
+  });
+
+  
+  if (uni_user) {
+    const main_account = await accounts.findOne({
+      account_category: "main",
+      address: uni_user.referral_address
+    });
+
+    return main_helper.success_response(res, main_account);
+  }
+
+  return main_helper.error_response(res, "User not found");
+};
+
 const get_referral_user_by_address = async (req, res) => {
   const { address } = req.body;
 
@@ -1949,7 +1969,8 @@ module.exports = {
   uni_comission_count_user,
   check_referral_available,
   get_referral_user_by_lvl_and_pos,
-  get_referral_user_by_address
+  get_referral_user_by_address,
+  get_referral_uni_parent
 };
 
 // test_change();
