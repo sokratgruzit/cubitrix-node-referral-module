@@ -295,7 +295,7 @@ const binary_recursion = async (
     await main_account.updateOne({
       y: lvl,
       x: last_position,
-      referral: true,
+      referralStatus: true,
       positionID: Math.pow(2, lvl) + (last_position - 1),
       parent: referral_parent?.address,
       introducer: introducer ? introducer : referral_address_modified
@@ -304,7 +304,7 @@ const binary_recursion = async (
     await main_account.updateOne({
       y: lvl,
       x: last_position,
-      referral: true,
+      referralStatus: true,
       positionID: Math.pow(2, lvl) + (last_position - 1),
       parent: referral_address_modified,
       introducer: introducer ? introducer : referral_address_modified
