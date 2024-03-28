@@ -248,7 +248,7 @@ const binary_recursion = async (
   let referral_options = await options.findOne({
     key: "referral_binary_bv_options",
   });
-
+  console.log("ref user", user_address);
   let max_level_binary = referral_options?.object_value?.binaryData?.maxUsers
     ? referral_options?.object_value?.binaryData?.maxUsers
     : 11;
